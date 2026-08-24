@@ -1,0 +1,327 @@
+# PLAN MAESTRO — Asistente IA de Tareas para Microsoft Teams
+
+> **Este documento es la fuente de verdad del proyecto.**
+> Al abrir cualquier chat nuevo, leer este archivo primero, luego `BITACORA.md`.
+> Versión 1.0 — 15 de agosto de 2026
+
+---
+
+## 0. Cómo se usa este documento
+
+**Iker es el tech lead.** Claude actúa como mentor senior: da órdenes de trabajo, revisa entregas y verifica aprendizaje con preguntas. Iker ejecuta y reporta.
+
+**Ciclo de trabajo:**
+
+1. Claude asigna una **Orden de Trabajo (OT)** con criterio de aceptación explícito.
+2. Iker la ejecuta en un chat nuevo dedicado.
+3. Iker reporta el resultado.
+4. Claude verifica con **preguntas de comprensión** (no basta con que funcione: hay que entender por qué).
+5. Se registra en `BITACORA.md` y se libera la siguiente OT.
+
+**Prompt para arrancar cualquier chat nuevo:**
+
+```
+Lee PLAN-MAESTRO.md y BITACORA.md en la carpeta del proyecto.
+Vengo a ejecutar la OT-XX. Actúa como mi mentor senior según el plan.
+```
+
+---
+
+## 1. El Norte del proyecto
+
+> **Un agente conversacional dentro de Microsoft Teams que responde "¿qué tengo esta semana?"
+> unificando pendientes dispersos en Planner, To Do, Calendario y mensajes de canal —
+> entregando un resumen accionable con enlace a la fuente exacta.**
+
+### Lo que SÍ es
+
+- Agregador de pendientes multi-fuente con capa de normalización propia.
+- Resumen generado por LLM, breve y bajo demanda ("abrebocas", no muro de texto).
+- **Trazabilidad obligatoria**: toda afirmación del bot enlaza a su origen en Teams.
+- Alcance de datos: **solo el usuario autenticado**, vía autenticación delegada.
+
+### Lo que NO es (defender esta lista en sustentación)
+
+- ❌ No es un chatbot de propósito general. Si preguntan por recetas de cocina, no responde.
+- ❌ No lee la organización entera. Solo lo que el usuario ya puede ver.
+- ❌ No resuelve las tareas. Orienta, contextualiza y enlaza.
+- ❌ No reemplaza a Planner. Lo unifica con lo que Planner no ve.
+
+### Objetivos personales de Iker (igual de importantes que la nota)
+
+1. Aprender IA aplicada de verdad: RAG, embeddings, agentes, evaluación.
+2. Repositorio público de calidad profesional, documentado, para portafolio.
+3. Ejercer liderazgo técnico real sobre un equipo poco motivado.
+
+---
+
+## 2. Decisiones de Arquitectura (ADR)
+
+> **ADR** = *Architecture Decision Record*. Cada decisión importante se registra con su
+> contexto, la opción elegida y —lo más valioso— **lo que se descartó y por qué**.
+> Cuando el profesor pregunte "¿por qué hiciste X?", la respuesta ya está escrita.
+
+### ADR-001 — Backend en Python + FastAPI
+
+**Decidido:** Python 3.11+ con FastAPI.
+
+**Descartado:** .NET 8 + Semantic Kernel, pese a que Iker es desarrollador .NET.
+
+**Razón:**
+1. Python es la lengua franca del ecosistema de IA; maximiza tutoriales, librerías y valor de portafolio para roles de IA.
+2. Coherente con la propuesta ya presentada al docente.
+3. **Bus factor del equipo:** Julián y Antonio conocen Python y no conocen .NET. Elegir .NET habría concentrado el 100% del código en una sola persona y anulado cualquier posibilidad de delegar. La capacidad del equipo es un criterio de arquitectura legítimo, no una concesión.
+
+> **Bus factor**: cuántas personas del equipo tendrían que desaparecer para que el proyecto se detenga. Un bus factor de 1 es un riesgo, no un logro.
+
+**Costo aceptado conscientemente:** el soporte de Microsoft para bots de Teams es más maduro en C#. Habrá más fricción en la capa de bot.
+
+**Mitigación obligatoria — Capa de Bot Delgada:**
+La integración con Teams se aísla en un único módulo adaptador. El bot **solo** traduce mensajes entrantes a llamadas HTTP contra el núcleo y formatea la respuesta. Cero lógica de negocio en la capa de bot. Si el SDK pelea, se reemplaza por webhooks o por el frontend Angular sin tocar el núcleo.
+
+**Disciplina compensatoria:** Iker viene de un lenguaje tipado. Se usará *type hinting* estricto + Pydantic + `mypy` desde el día 1. No es opcional: es lo que evita que un dev .NET escriba Python frágil.
+
+---
+
+### ADR-002 — Autenticación delegada, nunca permisos de aplicación
+
+**Decidido:** OAuth 2.0 *on-behalf-of*. La app actúa **como el usuario**, con su token.
+
+**Descartado:** permisos de aplicación (`ChannelMessage.Read.All`, `Files.Read.All`).
+
+**Razón:**
+- Los permisos de aplicación sobre mensajes de Teams son **Protected APIs**: requieren un formulario de solicitud a Microsoft con revisión semanal. No se aprueban para proyectos estudiantiles.
+- Requieren consentimiento del administrador del tenant. Ninguna universidad lo otorga a una app de estudiantes.
+- **Principio de mínimo privilegio** (OWASP): la app no debe poder hacer nada que el usuario no pueda.
+
+**Consecuencia de diseño:** cero credenciales de usuario almacenadas. Solo tokens de corta vida y *refresh tokens* cifrados.
+
+**Escape adicional documentado:** RSC (*Resource-Specific Consent*) permite que el dueño de un equipo específico autorice la app sobre ese equipo, sin tocar al admin del tenant. Es la vía si más adelante se necesita leer un canal completo.
+
+---
+
+### ADR-003 — Desarrollo sobre tenant propio, no sobre el de la universidad
+
+**Decidido:** crear un tenant Microsoft 365 propio y desarrollar ahí desde el día 1.
+
+**Descartado:** desarrollar contra el tenant de la UPB.
+
+**Razón:** el tenant universitario probablemente bloquea la carga de apps personalizadas, y depender de aprobaciones de TI mata cronogramas. Además, **ningún proveedor de software serio desarrolla contra el tenant productivo de un cliente.**
+
+**Beneficio estratégico:** reposiciona el proyecto como **producto ISV multi-tenant**. El entregable incluye una *Guía de Instalación para el Administrador de TI del cliente*. Eso convierte un trabajo de clase en un producto.
+
+**Requisito:** cuenta *work/school* en un tenant. Las cuentas de consumidor (@outlook.com, @hotmail) **no sirven**: no tienen Teams empresarial, ni Planner, ni superficie útil de Graph.
+
+---
+
+### ADR-004 — Monolito modular con arquitectura hexagonal
+
+**Decidido:** un solo desplegable, organizado en capas con dependencias hacia adentro.
+
+**Descartado:** microservicios (sobre-ingeniería para 3 personas y un semestre — **YAGNI**).
+
+**Regla de oro:** el núcleo de negocio **no sabe** que existen FastAPI, Mongo, Teams ni OpenAI. Solo conoce interfaces propias.
+
+```
+app/
+├── domain/       # Entidades puras. Sin imports de librerías externas.
+│   └── pendiente.py
+├── ports/        # Interfaces (contratos): LLMProvider, TaskSource, VectorStore
+├── services/     # Casos de uso. Orquestan el dominio. Testeables sin red.
+├── adapters/     # Implementaciones: GraphPlannerSource, OpenAIProvider, MongoStore
+└── api/          # FastAPI. Capa más externa y más delgada.
+```
+
+**Por qué importa:** permite testear toda la lógica con dobles de prueba, sin llamar a Microsoft ni gastar tokens. Y permite cambiar de LLM con una variable de entorno.
+
+---
+
+### ADR-005 — Modelo de dominio propio: `Pendiente`
+
+**Decidido:** normalizar todas las fuentes a una entidad propia.
+
+```python
+@dataclass(frozen=True)
+class Pendiente:
+    id: str
+    titulo: str
+    fuente: FuentePendiente      # PLANNER | TODO | CALENDARIO | MENSAJE
+    vence: datetime | None
+    url_origen: str              # trazabilidad OBLIGATORIA
+    confianza: float             # 1.0 si es estructurado; <1.0 si lo infirió el LLM
+    contexto: str | None
+```
+
+**Razón:** los objetos crudos de Graph acoplan el sistema a Microsoft para siempre. Con este modelo, soportar Google Classroom mañana es escribir **un adaptador nuevo**, no reescribir el sistema.
+
+El campo `confianza` es clave: distingue un hecho verificado (Planner) de una inferencia del LLM (un mensaje que *parece* asignar una tarea). Es honestidad de diseño y es la respuesta a la pregunta "¿y si alucina una fecha de entrega?".
+
+---
+
+### ADR-006 — Proveedor de LLM intercambiable
+
+**Decidido:** interfaz `LLMProvider` con implementaciones intercambiables por configuración.
+
+**Razón:** Azure OpenAI puede requerir solicitud de acceso o cuenta empresarial. No se puede hipotecar el proyecto a un proveedor incierto. Aplicación directa de **Inversión de Dependencias** (la D de SOLID).
+
+**Consecuencia para QA:** existe un `FakeLLMProvider` determinista. Los tests corren sin red, sin costo y sin resultados aleatorios.
+
+---
+
+### ADR-007 — MongoDB Atlas como almacén único
+
+**Decidido:** MongoDB Atlas para documentos, vectores e historial.
+
+**Razón:** Atlas incluye **Vector Search** nativo. Elimina la necesidad de una base vectorial aparte (Pinecone, Qdrant): una dependencia menos, un despliegue menos, una cuenta menos.
+
+---
+
+### ADR-008 — Generación progresiva de respuestas
+
+**Decidido:** respuesta en dos niveles — lista breve inmediata, detalle solo bajo demanda.
+
+**Razón (corregida respecto a la intuición inicial):** el limitante **no es el cómputo** —resumir 20 tareas cuesta centavos—. Los limitantes reales son:
+
+1. **Latencia**: nadie espera 15 segundos por un mensaje en Teams.
+2. **UX**: un muro de texto no se lee.
+3. **Economía de tokens**: importa a escala, no en el MVP.
+
+**Implementación:** modelo rápido y barato para la lista; modelo mayor solo si el usuario pide profundizar en un ítem concreto.
+
+---
+
+## 3. Arquitectura del sistema
+
+```
+┌─────────────────────────────────────────────────┐
+│  Microsoft Teams  (o Angular, plan de contingencia) │
+└────────────────────┬────────────────────────────┘
+                     │  HTTPS
+┌────────────────────▼────────────────────────────┐
+│  ADAPTADOR DE BOT  — delgado, sin lógica (ADR-001) │
+└────────────────────┬────────────────────────────┘
+┌────────────────────▼────────────────────────────┐
+│  FastAPI  /  api                                 │
+├──────────────────────────────────────────────────┤
+│  services/  ORQUESTADOR                          │
+│    ¿responder directo? ¿buscar? ¿consultar Graph?│
+├──────────────────────────────────────────────────┤
+│  ports/   LLMProvider · TaskSource · VectorStore │
+├──────────────────────────────────────────────────┤
+│  adapters/                                       │
+│    ├── Graph: Planner · To Do · Calendario · Chat│
+│    ├── Ingesta: PDF/XLSX → chunks → embeddings   │
+│    └── LLM: Azure OpenAI | OpenAI | Ollama       │
+└────────────────────┬─────────────────────────────┘
+                     ▼
+        MongoDB Atlas  (docs + vectores + historial)
+```
+
+---
+
+## 4. Hoja de ruta
+
+Semestre estimado: 14 semanas desde la semana del 17 de agosto de 2026.
+
+| Fase | Semanas | Objetivo | Criterio de "hecho" |
+|---|---|---|---|
+| **F0 — Reconocimiento** | 1 | Desactivar riesgos de plataforma | Tenant propio operativo, app registrada, LLM confirmado |
+| **F1 — Núcleo** | 2-3 | FastAPI + Mongo + LLM | `POST /chat` responde por `curl`. Cero Teams involucrado |
+| **F2 — Graph delegado** | 4-6 | Agregador de pendientes | `GET /pendientes` devuelve Planner + To Do + Calendario unificados |
+| **F3 — RAG** | 7-9 | Búsqueda con citación | Pregunta sobre un PDF → respuesta citando página y enlace |
+| **F4 — Teams** | 10-11 | Bot vivo | El bot responde en un canal real con login delegado |
+| **F5 — QA y cierre** | 12-14 | Blindaje, docs, demo | Suite de tests verde, README profesional, sustentación ensayada |
+
+**El orden es deliberado y contraintuitivo: Teams va en la fase 4, no en la 1.**
+Quien empieza peleando con el toolkit de Teams quema seis semanas en configuración y llega a noviembre con un bot que dice "hola" y ninguna funcionalidad. Se construye el cerebro primero y la cara después.
+
+**Nota:** F2 (Graph) va **antes** que F3 (RAG) porque la agregación de pendientes es el corazón del valor prometido. Si el semestre se comprime, el proyecto se sustenta con F2; sin F2 no hay proyecto.
+
+---
+
+## 5. Reparto del equipo
+
+**Principio de asignación:** el trabajo de Julián y Antonio es **real y valioso**, pero está deliberadamente **fuera de la ruta crítica**. Si no entregan, el proyecto se sustenta igual. Cada paquete tiene plantilla y criterio de aceptación para que "no supe qué hacer" no sea una excusa disponible.
+
+### Iker — Tech Lead (ruta crítica)
+- Arquitectura y todos los ADR.
+- Orquestador, capa de servicios y modelo de dominio.
+- Adaptadores de Graph y autenticación delegada.
+- Motor de RAG.
+- Code review de absolutamente todo.
+
+### Julián — Ingesta de documentos
+**Paquete cerrado, sin dependencias del resto del sistema.**
+- Librería de funciones puras: archivo → texto limpio estructurado.
+- Soporte PDF y XLSX. Manejo de archivos corruptos, vacíos y sin texto (escaneados).
+- Tests unitarios propios con un corpus de ejemplos.
+- **Aceptación:** `extraer_texto(ruta) -> list[Fragmento]` con tests verdes y ≥5 casos borde cubiertos.
+- **Por qué no bloquea:** Iker trabaja con un *stub* que devuelve texto fijo hasta que esté listo.
+
+### Antonio — QA y documentación
+**Paquete cerrado, no requiere escribir código de producción.**
+- **Golden dataset**: 40+ preguntas reales de estudiantes con la respuesta esperada. *Este es el entregable más valioso del proyecto después del núcleo* — sin él no hay forma de medir si la IA responde bien.
+- Batería de pruebas de **prompt injection / jailbreak**: intentos de sacar al bot de su contexto.
+- Casos de **control de acceso**: ¿puede el usuario A ver datos del usuario B? (OWASP #1, *Broken Access Control*).
+- Manual de usuario y guía de instalación para administradores de TI.
+- **Aceptación:** documento versionado en el repo, en formato tabla, revisado por Iker.
+
+### Ambos
+- Encuesta a 15+ estudiantes sobre su gestión de pendientes. Es la **evidencia de necesidad** que sustenta el problema ante el docente.
+- Diapositivas de la sustentación final.
+
+---
+
+## 6. Riesgos vivos
+
+| # | Riesgo | Impacto | Mitigación | Estado |
+|---|---|---|---|---|
+| R1 | Tenant UPB bloquea apps personalizadas | Alto | ADR-003: tenant propio | Mitigado por diseño |
+| R2 | Permisos de Graph denegados | Crítico | ADR-002: solo delegado | Mitigado por diseño |
+| R3 | Sin acceso a Azure OpenAI | Medio | ADR-006: proveedor intercambiable | Mitigado por diseño |
+| R4 | SDK de bot Python inmaduro | Medio | ADR-001: capa de bot delgada | Vigilar en F4 |
+| R5 | Compañeros no entregan | Medio | Trabajo fuera de ruta crítica | Vigilar continuo |
+| R6 | Iker es nuevo en Python idiomático | Medio | Tipado estricto + mypy + code review | Vigilar en F1 |
+| R7 | El LLM alucina fechas de entrega | Alto | Campo `confianza` + citación obligatoria | Vigilar en F3 |
+
+---
+
+## 7. Preguntas de sustentación a preparar
+
+1. *"¿Por qué esto y no Microsoft Copilot, que ya viene integrado en Teams?"*
+2. *"¿Dónde se almacenan los documentos y qué pasa si el modelo alucina una fecha de entrega?"*
+3. *"¿Cómo mides que el asistente responde bien? Dame una métrica."* ← **La que tumba proyectos de IA.**
+4. *"¿Por qué monolito y no microservicios?"*
+5. *"Si mañana la universidad usa Google Classroom, ¿cuánto hay que reescribir?"*
+6. *"¿Cómo garantizas que un usuario no vea los pendientes de otro?"*
+
+---
+
+## 8. Glosario
+
+| Término | Definición |
+|---|---|
+| **RAG** | *Retrieval-Augmented Generation*. Buscar fragmentos relevantes en tus documentos y pasárselos al modelo como contexto. Es la diferencia entre un examen de memoria y uno a libro abierto con citas obligatorias. |
+| **Embedding** | Representación numérica de un texto que captura su significado. Textos con sentido parecido quedan cerca en el espacio vectorial. |
+| **Chunking** | Partir un documento en fragmentos del tamaño adecuado para buscar y para caber en el contexto del modelo. Mal hecho, arruina el RAG entero. |
+| **Auth delegada / on-behalf-of** | La app actúa *como el usuario*, con sus permisos. Opuesto a permisos de aplicación, donde la app actúa por sí misma sobre toda la organización. |
+| **Tenant** | La instancia de Microsoft 365 de una organización. La UPB tiene el suyo; nosotros crearemos el nuestro. |
+| **MSA vs Work/School** | Cuenta de consumidor (@outlook.com) vs cuenta organizacional. Solo la segunda tiene Teams empresarial y API de Graph útil. |
+| **RSC** | *Resource-Specific Consent*. El dueño de un equipo autoriza una app solo sobre ese equipo, sin pasar por el admin del tenant. |
+| **Protected API** | API de Graph con datos sensibles que exige validación adicional de Microsoft mediante formulario. |
+| **ISV** | *Independent Software Vendor*. Proveedor cuyo software se instala en el tenant del cliente. |
+| **ADR** | *Architecture Decision Record*. Registro de una decisión de arquitectura con su contexto y sus alternativas descartadas. |
+| **Puerto / Adaptador** | Puerto = interfaz que define el núcleo. Adaptador = implementación concreta contra tecnología externa. |
+| **Golden dataset** | Conjunto de preguntas con respuesta esperada, usado para medir objetivamente la calidad de un sistema de IA. |
+| **Prompt injection** | Ataque en que el usuario manipula al modelo para que ignore sus instrucciones. |
+| **YAGNI** | *You Aren't Gonna Need It*. No construyas hoy lo que no necesitas hoy. |
+
+---
+
+## 9. Convenciones del repositorio
+
+- **Commits**: *Conventional Commits* (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`).
+- **Ramas**: `main` protegida. Trabajo en `feat/nombre`. Merge vía PR, siempre.
+- **Los ADR viven en el repo**, en `docs/adr/`. Cada uno numerado e inmutable: si cambia una decisión, se escribe un ADR nuevo que supersede al anterior. No se reescribe la historia.
+- **README** con: problema, demo en GIF, arquitectura, cómo correrlo localmente, guía de instalación para administradores. Esta es la cara del portafolio.
+- **Nada de secretos en el repo.** `.env` en `.gitignore` desde el commit uno. Un token de Microsoft filtrado en GitHub público es un incidente de seguridad real.
