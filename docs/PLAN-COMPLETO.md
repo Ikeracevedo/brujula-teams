@@ -190,6 +190,38 @@ El campo `confianza` es clave: distingue un hecho verificado (Planner) de una in
 
 ---
 
+### ADR-009 — Teams como canal primario; riesgo de rúbrica aceptado
+
+**Decidido (2-sep-2026, por el tech lead):** Microsoft Teams es el canal principal y se construye
+primero. El frontend web responsive se implementa en F4 como segundo canal.
+
+**Descartado:** invertir la prioridad y hacer la web primero para blindar la nota.
+
+**Riesgo aceptado conscientemente:** la rúbrica exige *"implementación responsive (Desk y Mobile)"*.
+Un bot de Teams satisface el espíritu (Teams tiene cliente de escritorio y móvil) pero no de forma
+literal e inequívoca. Si en F4 no alcanza el tiempo para el frontend web, la nota depende de la
+interpretación del docente.
+
+**Mitigación:**
+1. El núcleo es agnóstico del canal (ADR-001, ADR-004). El frontend web consume la **misma** API
+   sin tocar el dominio. Construirlo es trabajo de UI, no de arquitectura.
+2. **Punto de reevaluación obligatorio: checkpoint del 30 de septiembre.** Si en esa fecha no hay
+   un núcleo funcionando end-to-end, se congela Teams y se prioriza la web responsive.
+   *No es una sugerencia: es un disparador con fecha.*
+3. Consultar al docente si un bot de Teams cuenta como implementación responsive. Es una pregunta
+   de un minuto que elimina el riesgo por completo. **Preguntar es más barato que asumir.**
+
+**Beneficio no obvio:** dos canales sobre un mismo núcleo es la **demostración empírica** del
+ADR-004. En sustentación: *"mi dominio no sabe si le habla Teams o un navegador — aquí está la
+prueba, dos frontends y cero cambios en el núcleo."* Vale más que cualquier diagrama.
+
+**Nota sobre el frontend:** la propuesta original (`Proyecto idea.pdf`) dice **React**, no Angular.
+Corrección aceptada. Tensión pendiente de resolver en F4: Iker domina Angular y no React; en una
+ventana de 8 semanas, el framework que ya se domina suele valer más que el que aparece en un slide.
+Decisión aplazada hasta F4.
+
+---
+
 ## 3. Arquitectura del sistema
 
 ```
@@ -221,21 +253,56 @@ El campo `confianza` es clave: distingue un hecho verificado (Planner) de una in
 
 ## 4. Hoja de ruta
 
-Semestre estimado: 14 semanas desde la semana del 17 de agosto de 2026.
+> ⚠️ **REESCRITA EL 2-SEP-2026.** La versión anterior (14 semanas hasta noviembre) se construyó
+> **sin haber leído `Definicion del curso.pdf`**. Error de planeación del mentor: se armó un
+> cronograma sin leer la rúbrica que lo califica. Es el mismo error que se le venía señalando a
+> Iker — asumir en vez de verificar. Queda registrado como precedente.
 
-| Fase | Semanas | Objetivo | Criterio de "hecho" |
+### 4.1 Lo que exige la rúbrica del curso (fuente: `Definicion del curso.pdf`)
+
+| Entregable | Fecha | Estado |
+|---|---|---|
+| E1 — MVP y definiciones técnicas | 22 jul | ✅ Entregado (`Proyecto idea.pdf`) |
+| E2 — OKR y buyer persona (Mural) | 29 jul | ❓ Sin verificar |
+| E3 — Prototipo funcional con todas las pantallas | 12 ago | ❓ Sin verificar |
+| E4 — User Story Mapping + Historias de Usuario | 26 ago | ❓ Sin verificar |
+| **E-final — Implementación + documentación** | **2 sep → 28 oct** | 🟡 **En curso** |
+
+**Requisitos textuales de la entrega final:**
+- *"Implementación **responsive (Desk y Mobile)** funcional de la solución digital en ambientes de desarrollo"*
+- Documentación: **definición técnica de arquitectura**, **diagrama de clases**, **diagrama de casos de uso**, **diagrama de base de datos**
+- *"Se realizan entregas cada dos semanas"* → checkpoints: **16 sep · 30 sep · 14 oct · 28 oct**
+
+**Deuda documental identificada:** los tres diagramas exigidos no existían en el plan. Se incorporan
+a la fase de cierre. No son burocracia: son nota.
+
+### 4.2 Hoja de ruta vigente — 8 semanas
+
+| Fase | Ventana | Objetivo | Criterio de "hecho" |
 |---|---|---|---|
-| **F0 — Reconocimiento** | 1 | Desactivar riesgos de plataforma | Tenant propio operativo, app registrada, LLM confirmado |
-| **F1 — Núcleo** | 2-3 | FastAPI + Mongo + LLM | `POST /chat` responde por `curl`. Cero Teams involucrado |
-| **F2 — Graph delegado** | 4-6 | Agregador de pendientes | `GET /pendientes` devuelve Planner + To Do + Calendario unificados |
-| **F3 — RAG** | 7-9 | Búsqueda con citación | Pregunta sobre un PDF → respuesta citando página y enlace |
-| **F4 — Teams** | 10-11 | Bot vivo | El bot responde en un canal real con login delegado |
-| **F5 — QA y cierre** | 12-14 | Blindaje, docs, demo | Suite de tests verde, README profesional, sustentación ensayada |
+| **F1 — Plomería de Teams + esqueleto** | 2–16 sep | Ver algo vivo dentro de Teams y fijar la estructura | Bot *echo* respondiendo en el tenant propio + estructura hexagonal creada |
+| **F2 — Núcleo con IA** | 16–30 sep | FastAPI + LLM + Mongo detrás de puertos | El bot de Teams responde con Gemini real, vía el núcleo |
+| **F3 — Graph delegado** | 30 sep–14 oct | Agregador de `Pendiente` | *"¿Qué tengo esta semana?"* devuelve Planner + To Do + Calendario unificados |
+| **F4 — Web responsive, docs y QA** | 14–28 oct | Cumplir rúbrica y blindar | Frontend web responsive, 3 diagramas, tests verdes, demo ensayada |
 
-**El orden es deliberado y contraintuitivo: Teams va en la fase 4, no en la 1.**
-Quien empieza peleando con el toolkit de Teams quema seis semanas en configuración y llega a noviembre con un bot que dice "hola" y ninguna funcionalidad. Se construye el cerebro primero y la cara después.
+**Recorte explícito:** el **RAG sobre documentos (PDF/Excel) queda fuera del alcance calificado.**
+Entra solo si sobra tiempo, o se demuestra como prueba de concepto en la sustentación.
+Es el sacrificio consciente que impone la ventana de 8 semanas. Duele para el portafolio; se
+recupera después de la entrega, con el repo ya público y sin presión de nota.
 
-**Nota:** F2 (Graph) va **antes** que F3 (RAG) porque la agregación de pendientes es el corazón del valor prometido. Si el semestre se comprime, el proyecto se sustenta con F2; sin F2 no hay proyecto.
+### 4.3 Inversión del orden — decisión del 2-sep-2026
+
+El plan original ponía Teams en la fase 4. **Se invierte por decisión del tech lead:** Teams pasa a
+la fase 1.
+
+**Justificación técnica que respalda la decisión:** la propia bitácora (cierre de OT-01) había
+clasificado el SDK de bot de Teams para Python como *"el riesgo más caro del plan"*, con la
+instrucción de probarlo mediante un hola-mundo desechable **temprano**. Adelantarlo no contradice
+el plan: **ejecuta el plan de mitigación de riesgos antes de lo previsto.**
+
+**Regla que sigue vigente y no se negocia:** el spike de Teams es **código desechable en carpeta
+aparte**. El scaffold del Toolkit **no** se convierte en la base del proyecto. Un spike responde una
+pregunta y se borra; si se queda, impone su forma al sistema y destruye el ADR-001.
 
 ---
 

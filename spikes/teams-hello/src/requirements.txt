@@ -1,0 +1,22 @@
+# --- OT-02A / spike desechable ---
+# Modificado respecto al scaffold original (ver requirements.txt.original).
+#
+# 1) 'dotenv' -> 'python-dotenv'
+#    El Toolkit trae 'dotenv>=0.9.9': paquete ABANDONADO desde 2013 cuya propia
+#    descripcion dice "THIS LIBRARY IS NO LONGER SUPPORTED, USE python-dotenv".
+#
+# 2) microsoft-teams-apps: 2.0.0a8 -> 2.0.16
+#    HALLAZGO OT-02A: el scaffold pina una ALPHA (2.0.0a8) que exige Python
+#    >=3.12,<3.14 y quedo ~70 releases atras. En PyPI ya existe 2.0.0 estable
+#    y la serie llega a 2.0.16. La PLANTILLA del Toolkit esta desactualizada
+#    respecto a su propio SDK. Veredicto R4: el SDK de Python es GA, no alpha.
+#
+# 3) Versiones FIJADAS con ==. Reproducibilidad > comodidad.
+#
+# RIESGO CONOCIDO: src/app.py fue generado contra la API de 2.0.0a8. Entre esa
+# alpha y 2.0.16 la API pudo cambiar. Si los imports de microsoft_teams.* fallan,
+# NO es culpa de Python ni del SDK: es la plantilla vieja. Se ajusta app.py.
+
+python-dotenv==1.0.1
+azure-identity==1.19.0
+microsoft-teams-apps==2.0.16
