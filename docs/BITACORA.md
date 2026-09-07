@@ -4,12 +4,13 @@
 > Leer junto con `PLAN-MAESTRO.md` al inicio de cada chat.
 
 **Estado actual:** **F1 — Plomería de Teams + esqueleto** (2–16 sep)
-**OT activa:** OT-02A ejecutada al 80% (falta sideload en Teams) → sigue **OT-02B**
+**OT activa:** **OT-02B** — orden redactada y verificada (`docs/OT-02B.md`), lista para ejecutar
+**OT-02A:** 80% — solo falta el sideload en Teams, incorporado como Fase 1 de la OT-02B
 **OT-01:** ✅ CERRADA (23-ago-2026)
 **Repositorio:** `brujula-teams` (público) — `github.com/Ikeracevedo/brujula-teams`
 **Nombre del proyecto:** **Brújula**
 **⏰ ENTREGA FINAL: 28 DE OCTUBRE DE 2026.** Checkpoints: 16 sep · 30 sep · 14 oct · 28 oct
-**Última actualización:** 2 de septiembre de 2026 (sesión de tarde — ejecución de OT-02A)
+**Última actualización:** 7 de septiembre de 2026 (sesión de planeación — redacción y verificación de OT-02B)
 
 ---
 
@@ -18,8 +19,8 @@
 | OT | Fase | Título | Estado |
 |---|---|---|---|
 | OT-01 | F0 | Reconocimiento de plataforma y primer contacto con Graph | ✅ Cerrada |
-| **OT-02A** | F1 | **Spike desechable: ver un bot vivo en Teams** | 🟢 **80% — R4 resuelto; falta sideload** |
-| **OT-02B** | F1 | **Esqueleto hexagonal + app de Entra ID multiinquilino** | 🟡 Activa (tras 02A) |
+| **OT-02A** | F1 | **Spike desechable: ver un bot vivo en Teams** | 🟢 **80% — R4 resuelto; el sideload pasa a ser la Fase 1 de OT-02B** |
+| **OT-02B** | F1 | **Esqueleto hexagonal + app de Entra ID multiinquilino** | 🟢 **Orden redactada y verificada — `docs/OT-02B.md`. Lista para ejecutar** |
 | OT-03 | F2 | Puerto `LLMProvider` + adaptador Gemini + `FakeLLMProvider` | ⚪ Pendiente |
 | OT-04 | F2 | Conectar el bot al núcleo. MongoDB Atlas + historial | ⚪ Pendiente |
 | OT-05 | F3 | Puerto `TaskSource` + adaptador Planner → `Pendiente` | ⚪ Pendiente |
@@ -54,6 +55,110 @@ califican no es contexto opcional: es el requisito de más alta prioridad del pr
 **Incidencia menor:** `.gitignore` aparece con 218 líneas modificadas y contenido idéntico —
 diferencia de fin de línea CRLF/LF de Windows. Se corrige con un `.gitattributes` que fije
 `* text=auto eol=lf`. Diffs ruidosos ocultan diffs reales.
+
+---
+
+## Sesión del 7-sep-2026 — Redacción y verificación de la OT-02B
+
+**Naturaleza de la sesión:** planeación y diseño, sin escribir código en el repo.
+**Entregable:** `docs/OT-02B.md` — orden de trabajo ejecutable, en 6 fases con compuertas.
+**Decisión de proceso del tech lead:** modo **Guíame**. Todo el código lo escribe Iker; el mentor
+entrega contrato, explicación y revisión. La ejecución se hace en una sesión aparte.
+
+### Auditoría del estado real del repo (verificada, no reportada de memoria)
+
+| Verificación | Resultado |
+|---|---|
+| `git log --oneline` | 3 commits, **todos directo sobre `main`** |
+| `git status` | `.gitignore` modificado: 218 inserciones / 218 borrados, **contenido idéntico** (ruido CRLF, sin resolver desde el 2-sep) |
+| `git branch` | Solo `main`. La convención del §9 del plan (`feat/` + PR) **no se estaba cumpliendo** |
+| `.gitattributes` | **No existía** (pendiente #4, abierto desde el 2-sep) |
+| `app/`, `tests/`, `pyproject.toml` | **No existían.** OT-02B en cero |
+| `spikes/teams-hello/` | Vivo, con `.venv/` y `.env` adentro (pendiente #3, abierto) |
+
+**Hallazgo de proceso:** cuatro de los seis pendientes registrados el 2-sep seguían sin ejecutar
+cinco días después. Un pendiente escrito en la bitácora sin fecha ni compuerta es una intención,
+no una tarea. **Corrección adoptada:** la OT-02B organiza los pendientes en fases con compuerta
+de salida verificable, no en una lista.
+
+### Decisiones tomadas
+
+1. **Desacoplar OT-02A de OT-02B.** El único pendiente de 02A es el sideload, que dependía de la
+   propagación de una directiva externa. Esperar a Teams para escribir código permanente violaba
+   la regla ya adoptada en OT-01: *nunca poner una dependencia humana o externa dentro del ciclo
+   de iteración.* El sideload entra como **Fase 1 de la OT-02B**, con límite de 15 minutos.
+2. **La higiene de Git va antes del primer commit de `app/`.** `.gitattributes` y la
+   renormalización CRLF cuestan tres minutos hoy y una tarde después de crear treinta archivos.
+3. **Alcance cerrado:** hoy esqueleto + tooling + tests + app de Entra ID. **La conexión con el LLM
+   queda para OT-03.** Los *puertos* sí se definen — un puerto es un contrato, no una dependencia.
+4. **Se añaden tres criterios de aceptación** que no estaban en la OT-02B original: endpoint
+   `GET /api/agenda` funcionando end-to-end sin red, *fitness function* de arquitectura, y entrega
+   por PR desde `feat/esqueleto-hexagonal`.
+
+### Presión de calendario registrada
+
+Hoy 7-sep. **Tenant vence el 15-sep (8 días). Checkpoint del curso el 16-sep (9 días).**
+El criterio de “hecho” de F1 exige el bot vivo *dentro de Teams*, y eso depende de un tenant que
+puede caducar **un día antes del checkpoint**. **La captura de evidencia hay que tomarla antes del
+15, no después.** Una captura sobrevive a la muerte de un tenant; un tenant caído no se reconstruye
+en 24 horas.
+
+### Decisiones de arquitectura incorporadas a la OT-02B
+
+| Decisión | Justificación breve |
+|---|---|
+| `Pendiente` valida sus invariantes en `__post_init__` | Convierte la trazabilidad obligatoria de una promesa documental en un `raise`. *Hacer irrepresentables los estados ilegales.* |
+| Entidad nueva **`Agenda`** con campo `fuentes_fallidas` | La regla no negociable de OT-01 (*fallo ≠ vacío*) deja de ser una nota y pasa a ser **un campo del tipo de retorno**. Permite resultado parcial honesto en vez de todo-o-nada. |
+| Puertos como `Protocol`, no como `ABC` | Tipado estructural: el adaptador no importa el puerto. La compatibilidad se verifica por forma, no por linaje. |
+| Puertos **`async` desde el día 1** | En OT-05 serán llamadas HTTP a Graph en paralelo. Convertir una interfaz síncrona en asíncrona después contamina toda la cadena (*function coloring*). |
+| `ahora` se inyecta como parámetro, no se lee del reloj | *Toda fuente de no-determinismo es una dependencia, y toda dependencia se inyecta.* Mismo principio que el `FakeLLMProvider`. |
+| El servicio captura `FuenteNoDisponibleError` pero **re-lanza** el resto | Un `KeyError` es un bug propio y debe explotar. Atrapar todo por igual disfrazaría cada bug de “fuente caída”. |
+| DTOs de API separados del dominio | No es preferencia estilística: es **consecuencia forzada** del ADR-004, que prohíbe Pydantic en `domain/`. |
+
+### ⭐ Aporte nuevo: *fitness function* de arquitectura
+
+`tests/test_arquitectura.py` parsea con `ast` cada archivo de `app/` y verifica automáticamente las
+reglas de dependencia del ADR-004: el dominio solo importa librería estándar, los puertos solo
+conocen el dominio, los servicios no conocen adaptadores ni FastAPI.
+
+> **Por qué importa.** Una arquitectura no muere de un golpe: muere de un import puesto a las dos
+> de la mañana tres semanas antes de la entrega. Nadie lo revisa, nadie se entera, y el diagrama
+> sigue mintiendo. Este test lo hace imposible sin que algo se ponga rojo.
+> **Ante “¿cómo sé que su arquitectura es lo que dice el diagrama?” la respuesta es correr el test
+> en vivo.** Término técnico para la sustentación: *fitness function* (Neal Ford,
+> *Building Evolutionary Architectures*).
+
+### Verificación previa de la orden — se ejecutó antes de entregarla
+
+Todo el código de la OT-02B se levantó y se ejecutó en un entorno desechable antes de escribirlo
+en el repo:
+
+| Comprobación | Resultado |
+|---|---|
+| `pytest` | **26 tests verdes** |
+| `mypy --strict` | **Success: no issues found in 22 source files** |
+| `ruff check .` | **All checks passed** |
+| `GET /api/agenda` | 4 pendientes ordenados, el de `MENSAJE` marcado `es_inferido: true`, `confianza 0.72` |
+| **Sabotaje del test de arquitectura** | `import fastapi` inyectado en `app/domain/pendiente.py` → el test **falló** con el mensaje correcto. Revertido. |
+
+> **REGLA ADOPTADA:** *un test que nunca has visto fallar no sabes si funciona.* Toda
+> *fitness function* se verifica saboteando deliberadamente lo que protege.
+
+### Correcciones del mentor registradas (4 defectos en la primera versión de la orden)
+
+| # | Defecto | Qué lo detectó | Corrección |
+|---|---|---|---|
+| 1 | `pyproject.toml` eximía a los tests de anotar el retorno | `mypy --strict` → 26 errores | Se quitó la exención. La regla de `ruff` no silenciaba a `mypy`: la configuración se contradecía a sí misma |
+| 2 | `pytest.raises(Exception)` genérico | `ruff` B017 | `FrozenInstanceError` concreto. Un `raises(Exception)` pasa aunque el fallo sea por otro motivo: da falsa confianza |
+| 3 | `# type: ignore[union-attr]` en el test de arquitectura | `ruff` SIM102 | Se extrajo un helper y el `ignore` desapareció solo |
+| 4 | `servicio: T = Depends(...)` | `ruff` B008 | `Annotated[T, Depends(...)]`, el idioma actual de FastAPI |
+
+> **Lección:** los cuatro defectos pasaban los 26 tests en verde. `pytest` dice si el código *hace*
+> lo correcto; `mypy` y `ruff` dicen si está *construido* correctamente. Son preguntas distintas.
+>
+> **REGLA ADOPTADA:** *cuando un linter obliga a poner un `# type: ignore` o un `# noqa`, casi
+> nunca es la herramienta la que se equivoca: está señalando un diseño mejorable.* El defecto 3
+> es el caso exacto.
 
 ---
 
