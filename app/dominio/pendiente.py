@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 
-# Por debajo de este umbral el pendiente no vino de un sistema estructurado lo dedujo un modelo de lenguaje
+# Por debajo de este umbral el pendiente no vino de un
+# sistema estructurado lo dedujo un modelo de lenguaje
 UMBRAL_CONFIANZA_ALTA = 0.99
 
 class FuentePendiente(StrEnum):
@@ -41,7 +43,7 @@ class Pendiente:
     contexto: str | None = None
 
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """
         Valida los invariantes. Un pendiente invalido no llega a existir
         """
@@ -55,7 +57,7 @@ class Pendiente:
         if not 0.0 <= self.confianza <= 1.0:
             raise ValueError("Pendiente.confianza debe estar entre 0 y 1")
         if self.contexto is not None and not self.contexto.strip():
-            raise ValueError("Pendiente.contexto no puede estar vacio") 
+            raise ValueError("Pendiente.contexto no puede estar vacio")
 
     @property
     def es_inferido(self) -> bool:
@@ -64,4 +66,3 @@ class Pendiente:
         """
         return self.confianza < UMBRAL_CONFIANZA_ALTA
 
-    

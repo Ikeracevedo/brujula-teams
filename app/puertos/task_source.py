@@ -8,6 +8,7 @@ from typing import Protocol, runtime_checkable
 
 from app.dominio.pendiente import Pendiente
 
+
 @runtime_checkable
 class TaskSource(Protocol):
     """
@@ -30,7 +31,7 @@ class TaskSource(Protocol):
     ) -> list[Pendiente]:
         """Pendientes en la ventana [desde, hasta].
 
-        Contrato de errores 
+        Contrato de errores
         - sin pendientes -> lista vacia
         - no se pudo consultar -> FuenteNoDisponibleError
 

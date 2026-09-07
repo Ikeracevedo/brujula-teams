@@ -1,13 +1,14 @@
 
 
-from __future__ import annotations 
+from __future__ import annotations
+
 
 class BrujulaError(Exception):
     """
     Raiz de todos los errores propios
 
     Permite capturar el dominio entero sin arapar por accidente
-    ValueError o KeyError ajeno, que son bugs y deben explotar 
+    ValueError o KeyError ajeno, que son bugs y deben explotar
     """
 
 
