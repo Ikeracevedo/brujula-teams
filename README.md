@@ -1,7 +1,7 @@
 <div align="center">
   <img src="docs/logo-upb.png" alt="Universidad Pontificia Bolivariana" width="340"/>
 
-  <h1>🧭 Brújula Teams </h1>
+  <h1> Brújula Teams </h1>
 
   <p><strong>Tus pendientes están regados entre Planner, To Do, el calendario y un mensaje perdido<br>
   en un canal de Teams. Brújula los reúne todos y te dice, de una vez, qué tienes esta semana.</strong></p>
