@@ -1,0 +1,20 @@
+# Normaliza finales de linea. Git guarda LF en el repositorio y entrega
+# a cada desarrollador lo que su sistema operativo espera.
+# Sin esto, un repo trabajado en Windows y en Linux produce diffs de
+# archivos completos donde no cambio ni un caracter.
+* text=auto eol=lf
+
+# Binarios: Git no debe intentar normalizarlos nunca.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# Scripts de Windows que SI necesitan CRLF para ejecutarse.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

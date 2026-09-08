@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Ordenes de trabajo (OT-*.md): contrato de trabajo entre mentor y tech lead,
+# scaffolding de proceso. El estado durable del proyecto vive en BITACORA.md
+# y PLAN-COMPLETO.md, no aqui.
+docs/OT-*.md
