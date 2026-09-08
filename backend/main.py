@@ -14,9 +14,7 @@ from botbuilder.core import (
 from botbuilder.schema import Activity
 
 
-# =========================================================
-# FASTAPI
-# =========================================================
+
 
 app = FastAPI(
     title="EduAssist",
@@ -25,9 +23,7 @@ app = FastAPI(
 )
 
 
-# =========================================================
-# CORS
-# =========================================================
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,9 +34,7 @@ app.add_middleware(
 )
 
 
-# =========================================================
-# CONFIGURACIÓN DEL BOT
-# =========================================================
+
 
 APP_ID = os.getenv("MicrosoftAppId", "")
 APP_PASSWORD = os.getenv("MicrosoftAppPassword", "")
@@ -54,10 +48,6 @@ settings = BotFrameworkAdapterSettings(
 
 adapter = BotFrameworkAdapter(settings)
 
-
-# =========================================================
-# ENDPOINTS DE PRUEBA
-# =========================================================
 
 @app.get("/")
 def root():
@@ -73,9 +63,6 @@ def health():
     }
 
 
-# =========================================================
-# BOT
-# =========================================================
 
 class EduAssistBot(ActivityHandler):
 
@@ -93,10 +80,6 @@ class EduAssistBot(ActivityHandler):
 bot = EduAssistBot()
 
 
-# =========================================================
-# ENDPOINT DE MICROSOFT TEAMS / BOT FRAMEWORK
-# =========================================================
-
 @app.post("/api/messages")
 async def messages(request: Request):
 
@@ -106,10 +89,8 @@ async def messages(request: Request):
 
     activity = Activity().deserialize(body)
 
-    print("========================================")
     print("ACTIVIDAD RECIBIDA")
     print(activity)
-    print("========================================")
 
     response = await adapter.process_activity(
         activity,
