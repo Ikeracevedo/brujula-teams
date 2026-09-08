@@ -15,7 +15,10 @@ from app.bot.bot_teams import crear_bot_teams
 from app.config import obtener_configuracion
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 def crear_app() -> FastAPI:
     config = obtener_configuracion()

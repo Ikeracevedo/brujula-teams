@@ -7,14 +7,46 @@
 **OT activa:** **OT-03A** — El canal de Teams sobre el núcleo real (`docs/OT-03A.md`), redactada
 y verificada, lista para ejecutar
 **OT-02B:** ✅ CERRADA (8-sep-2026), auditada ejecutando la suite. PR #1 mergeada
-**OT-02A:** 80% — el sideload pasa a ser la **Fase 4 de OT-03A**, ya contra el código permanente.
-⚠️ Debe capturarse **antes del 15-sep** (vencimiento del tenant, R11)
+**OT-02A:** 95% — bot vivo respondiendo en Teams contra el código permanente (`app/main.py`, no el
+spike). Capturas de `ayuda` y `semana` ya en `docs/evidencia/`. Falta solo F4.5 (ver abajo) para
+cerrarla del todo. ⚠️ Debe capturarse **antes del 15-sep** (vencimiento del tenant, R11)
 **OT-01:** ✅ CERRADA (23-ago-2026)
 **Repositorio:** `brujula-teams` (público) — `github.com/Ikeracevedo/brujula-teams`
 **Nombre del proyecto:** **Brújula**
 **⏰ ENTREGA FINAL: 28 DE OCTUBRE DE 2026.** Checkpoints: 16 sep · 30 sep · 14 oct · 28 oct
-**Documentos vivos:** `PLAN-COMPLETO.md` · `BITACORA.md` · `RUNBOOK-TENANT.md` · `GUIA-INSTALACION-TI.md` (borrador)
-**Última actualización:** 8 de septiembre de 2026 (runbook de reconstrucción del tenant)
+**Documentos vivos:** `PLAN-COMPLETO.md` · `BITACORA.md` · `RUNBOOK-TENANT.md` · `GUIA-INSTALACION-TI.md` (borrador) · `GUIA-OPERACION.md`
+**Última actualización:** 8 de septiembre de 2026 (bot de Teams funcional, F4 de OT-03A en curso)
+
+---
+
+## Sesión del 8-sep-2026 (noche) — F4 de OT-03A: el bot responde de verdad en Teams
+
+**Bug encontrado y cerrado:** `crear_bot_teams()` no le pasaba `tenant_id` al SDK. El Azure Bot
+quedó registrado como *Single Tenant*, pero el SDK asumía multi-tenant por defecto y pedía el token
+contra un endpoint genérico que no reconocía la app (`AADSTS700016` / `unauthorized_client`). Se
+verificó el nombre exacto del parámetro leyendo el código fuente del paquete instalado
+(`microsoft_teams/apps/options.py` — `AppOptions.tenant_id`), no por prueba y error. Fix: pasar
+`tenant_id=config.azure_tenant_id` al construir el `App(...)`. Reutiliza el mismo tenant ID que ya
+usa la app de Graph — es el mismo tenant físico para las dos identidades.
+
+**Evidencia capturada:** `ayuda` y `semana` (con tarjeta) respondiendo en Teams desde el código
+permanente, guardadas en `docs/evidencia/`. Faltan por capturar: instalación de la app y un mensaje
+fuera de alcance.
+
+**Pendiente explícito, aplazado a la próxima sesión:** F4.5 — la prueba de Graph Explorer sobre
+`GET /teams/{team-id}/channels/{channel-id}/messages` (200 vs 403, para saber si la fuente
+`MENSAJE` necesitará RSC). Sigue abierta desde el 2-sep; no bloquea lo demás de F4.
+
+**Logging de diagnóstico:** se añadió temporalmente `logging.basicConfig(level=logging.DEBUG)` en
+`app/main.py` para sacar a la luz un traceback que el SDK no propagaba al logger de `uvicorn`. Con
+el bug ya resuelto, esa línea debe reemplazarse por una configuración de logging permanente pero a
+nivel `INFO` (no `DEBUG` global) — ver razonamiento en la sesión de mentoría de ese mismo día:
+un `DEBUG` global es ruido permanente y riesgo de fuga de tokens en texto plano, no una mejora de
+observabilidad. Pendiente de aplicar.
+
+**Documentación nueva:** `README.md` reescrito con el estilo del Taller-1 (logo UPB, badges, tabla
+de funcionalidades) y `docs/GUIA-OPERACION.md` — manual de arranque día a día (venv, túnel,
+`uvicorn`, qué hacer si cambia la URL del túnel).
 
 ---
 
@@ -1285,6 +1317,11 @@ Brechas detectadas. **Repasar antes de la sustentación.**
 
 ## Decisiones pendientes
 
+- **F4.5 — Graph Explorer, aplazado a la próxima sesión (8-sep-2026):** ejecutar
+  `GET /teams/{team-id}/channels/{channel-id}/messages` autenticado con la cuenta del tenant y
+  anotar el resultado (200 con datos, o 403 + el permiso exacto que exige). Determina si la fuente
+  `MENSAJE` va a necesitar RSC (Resource-Specific Consent). No bloquea el resto de F4 — el bot ya
+  responde en Teams sin esto — pero hay que cerrarlo antes de dar por terminada la ✅ Compuerta F4.
 - ⚠️ **15 sep — FECHA CRÍTICA:** vence la prueba de M365 Business Standard. Decidir pago
   (16,80 USD/mes) o migrar de tenant **antes** de esa fecha. Un tenant caído en octubre = sin demo.
 - ⚠️ **30 sep — DISPARADOR ADR-009:** si no hay núcleo end-to-end, congelar Teams y priorizar la
