@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import ast
@@ -111,3 +109,64 @@ def test_servicios_no_importa_frameworks_web() -> None:
             f"{archivo.relative_to(RAIZ)} importa {contaminantes}. "
             f"servicios/ debe ser testeable sin red ni servidor."
         )
+
+
+def test_adaptadores_secundarios_no_llaman_a_servicios_ni_a_canales() -> None:
+    prohibidos = ("app.servicios", "app.api", "app.bot", "app.main")
+    for archivo in _archivos_de("adaptadores"):
+        for modulo in _imports_internos(archivo):
+            assert not modulo.startswith(prohibidos), (
+                f"{archivo.relative_to(RAIZ)} importa '{modulo}'. "
+                f"Un adaptador secundario es llamado por el nucleo, no al reves."
+            )
+
+
+def test_el_canal_http_no_conoce_el_canal_de_teams() -> None:
+    """ADR-009 verificado: el nucleo es agnostico del canal."""
+    for archivo in _archivos_de("api"):
+        for modulo in _imports_internos(archivo):
+            assert not modulo.startswith("app.bot"), (
+                f"{archivo.relative_to(RAIZ)} importa '{modulo}'. "
+                f"Los canales no se conocen entre si."
+            )
+
+
+def test_el_canal_de_teams_no_conoce_el_canal_http() -> None:
+    for archivo in _archivos_de("bot"):
+        for modulo in _imports_internos(archivo):
+            assert not modulo.startswith("app.api"), (
+                f"{archivo.relative_to(RAIZ)} importa '{modulo}'. "
+                f"Los canales no se conocen entre si."
+            )
+
+
+def test_la_presentacion_de_teams_solo_conoce_el_dominio() -> None:
+    """tarjeta_agenda.py debe ser una funcion pura Agenda -> AdaptiveCard."""
+    archivo = RAIZ / "app" / "bot" / "tarjeta_agenda.py"
+    assert archivo.exists(), "Falta app/bot/tarjeta_agenda.py"
+    for modulo in _imports_internos(archivo):
+        assert modulo.startswith("app.dominio"), (
+            f"tarjeta_agenda.py importa '{modulo}'. La presentacion solo "
+            f"traduce dominio a tarjeta: no sabe de donde salieron los datos."
+        )
+    prohibidos = {"fastapi", "uvicorn", "httpx"}
+    contaminantes = _modulos_raiz(archivo) & prohibidos
+    assert not contaminantes, f"tarjeta_agenda.py importa {contaminantes}."
+
+
+def test_solo_el_composition_root_conoce_los_dos_canales() -> None:
+    """app/main.py es el unico modulo autorizado a ensamblar canales."""
+    raiz_composicion = RAIZ / "app" / "main.py"
+    assert raiz_composicion.exists(), "Falta el composition root app/main.py"
+    internos = _imports_internos(raiz_composicion)
+    assert any(m.startswith("app.api") for m in internos)
+    assert any(m.startswith("app.bot") for m in internos)
+
+
+def test_el_dominio_no_conoce_el_sdk_de_teams() -> None:
+    for paquete in ("dominio", "puertos", "servicios"):
+        for archivo in _archivos_de(paquete):
+            assert "microsoft_teams" not in _modulos_raiz(archivo), (
+                f"{archivo.relative_to(RAIZ)} importa el SDK de Teams. "
+                f"El nucleo no sabe que Teams existe (ADR-001, ADR-004)."
+            )

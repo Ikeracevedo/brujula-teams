@@ -6,6 +6,7 @@ Implementaciones previstas:
   - GeminiProvider   -> Gemini API (proveedor confirmado en OT-01).
   - OllamaProvider   -> local, sin conexion ni cuota.
 """
+
 from __future__ import annotations
 
 from typing import Protocol, runtime_checkable

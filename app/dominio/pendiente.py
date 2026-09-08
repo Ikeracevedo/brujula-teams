@@ -8,6 +8,7 @@ from enum import StrEnum
 # sistema estructurado lo dedujo un modelo de lenguaje
 UMBRAL_CONFIANZA_ALTA = 0.99
 
+
 class FuentePendiente(StrEnum):
     """
     De donde salio el pendiente
@@ -42,7 +43,6 @@ class Pendiente:
     confianza: float = 1.0
     contexto: str | None = None
 
-
     def __post_init__(self) -> None:
         """
         Valida los invariantes. Un pendiente invalido no llega a existir
@@ -65,4 +65,3 @@ class Pendiente:
         True si lo dedujo un LLM en vez de vernir de un sistema de microsoft
         """
         return self.confianza < UMBRAL_CONFIANZA_ALTA
-

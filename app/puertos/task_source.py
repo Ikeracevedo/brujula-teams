@@ -1,6 +1,3 @@
-
-
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -22,12 +19,12 @@ class TaskSource(Protocol):
 
     @property
     def nombre(self) -> str:
-        """ Nombre legible de la fuente. Aparece en Agenda.fuentes_fallidas """
+        """Nombre legible de la fuente. Aparece en Agenda.fuentes_fallidas"""
 
     async def obtener_pendientes(
-            self,
-            desde: datetime,
-            hasta: datetime,
+        self,
+        desde: datetime,
+        hasta: datetime,
     ) -> list[Pendiente]:
         """Pendientes en la ventana [desde, hasta].
 

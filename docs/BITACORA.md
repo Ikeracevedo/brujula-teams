@@ -4,13 +4,17 @@
 > Leer junto con `PLAN-MAESTRO.md` al inicio de cada chat.
 
 **Estado actual:** **F1 — Plomería de Teams + esqueleto** (2–16 sep)
-**OT activa:** **OT-02B** — orden redactada y verificada (`docs/OT-02B.md`), lista para ejecutar
-**OT-02A:** 80% — solo falta el sideload en Teams, incorporado como Fase 1 de la OT-02B
+**OT activa:** **OT-03A** — El canal de Teams sobre el núcleo real (`docs/OT-03A.md`), redactada
+y verificada, lista para ejecutar
+**OT-02B:** ✅ CERRADA (8-sep-2026), auditada ejecutando la suite. PR #1 mergeada
+**OT-02A:** 80% — el sideload pasa a ser la **Fase 4 de OT-03A**, ya contra el código permanente.
+⚠️ Debe capturarse **antes del 15-sep** (vencimiento del tenant, R11)
 **OT-01:** ✅ CERRADA (23-ago-2026)
 **Repositorio:** `brujula-teams` (público) — `github.com/Ikeracevedo/brujula-teams`
 **Nombre del proyecto:** **Brújula**
 **⏰ ENTREGA FINAL: 28 DE OCTUBRE DE 2026.** Checkpoints: 16 sep · 30 sep · 14 oct · 28 oct
-**Última actualización:** 7 de septiembre de 2026 (sesión de planeación — redacción y verificación de OT-02B)
+**Documentos vivos:** `PLAN-COMPLETO.md` · `BITACORA.md` · `RUNBOOK-TENANT.md` · `GUIA-INSTALACION-TI.md` (borrador)
+**Última actualización:** 8 de septiembre de 2026 (runbook de reconstrucción del tenant)
 
 ---
 
@@ -19,11 +23,12 @@
 | OT | Fase | Título | Estado |
 |---|---|---|---|
 | OT-01 | F0 | Reconocimiento de plataforma y primer contacto con Graph | ✅ Cerrada |
-| **OT-02A** | F1 | **Spike desechable: ver un bot vivo en Teams** | 🟢 **80% — R4 resuelto; el sideload pasa a ser la Fase 1 de OT-02B** |
-| **OT-02B** | F1 | **Esqueleto hexagonal + app de Entra ID multiinquilino** | 🟢 **Orden redactada y verificada — `docs/OT-02B.md`. Lista para ejecutar** |
-| OT-03 | F2 | Puerto `LLMProvider` + adaptador Gemini + `FakeLLMProvider` | ⚪ Pendiente |
-| OT-04 | F2 | Conectar el bot al núcleo. MongoDB Atlas + historial | ⚪ Pendiente |
-| OT-05 | F3 | Puerto `TaskSource` + adaptador Planner → `Pendiente` | ⚪ Pendiente |
+| **OT-02A** | F1 | **Spike desechable: ver un bot vivo en Teams** | 🟢 **80% — R4 resuelto; el sideload se cierra en la Fase 4 de OT-03A** |
+| **OT-02B** | F1 | **Esqueleto hexagonal + app de Entra ID multiinquilino** | ✅ **CERRADA 8-sep.** Auditada ejecutando: 28 tests, mypy strict, ruff, app multiinquilino, PR #1 mergeada |
+| **OT-03A** | F1→F2 | **El canal de Teams sobre el núcleo real** | 🟢 **Orden redactada y verificada — `docs/OT-03A.md`. Lista para ejecutar** |
+| OT-03B | F2 | Puerto `LLMProvider` + `FakeLLMProvider` + adaptador Gemini | ⚪ Pendiente |
+| OT-04 | F2 | MongoDB Atlas + historial de conversación | ⚪ Pendiente |
+| OT-05 | F3 | Adaptadores de Graph: Planner · To Do · Calendario → `Pendiente` | ⚪ Pendiente |
 
 ---
 
@@ -55,6 +60,258 @@ califican no es contexto opcional: es el requisito de más alta prioridad del pr
 **Incidencia menor:** `.gitignore` aparece con 218 líneas modificadas y contenido idéntico —
 diferencia de fin de línea CRLF/LF de Windows. Se corrige con un `.gitattributes` que fije
 `* text=auto eol=lf`. Diffs ruidosos ocultan diffs reales.
+
+---
+
+## Sesión del 8-sep-2026 (tarde) — El tenant deja de ser un riesgo y pasa a ser un procedimiento
+
+**Decisión del tech lead:** no se paga el tenant. Se reconstruye cuando haga falta. Por tanto,
+**cada paso de configuración se registra ahora**, mientras la información está fresca, para poder
+reconstruir y para alimentar la guía de clientes.
+
+### Corrección del mentor a la petición: son DOS documentos, no uno
+
+La petición fue *"armemos un manual, me sirve cuando cree la otra cuenta y cuando cree el manual
+para que otras empresas usen el servicio."* **Son dos documentos con públicos casi disjuntos**, y
+fundirlos habría sido un error de fondo:
+
+| | `RUNBOOK-TENANT.md` | `GUIA-INSTALACION-TI.md` |
+|---|---|---|
+| Lector | El proveedor (Iker) | El admin de TI del cliente |
+| ¿Crea tenant? | Sí | **No.** Ya tiene el suyo |
+| ¿Registra app en Entra? | Sí | **No.** La app ya existe y es multiinquilino |
+| ¿Genera secretos? | Sí | **Nunca** |
+| Pasos | 10 | 3 |
+
+> **Por qué importa arquitectónicamente:** en el modelo ISV (ADR-003) el cliente **no registra
+> nada**. Si la guía de cliente le pidiera crear un registro de aplicación, estaría confesando que
+> el proyecto no tiene un producto sino un tutorial. **La brevedad de la guía de cliente es la
+> demostración de que el modelo ISV funciona.**
+
+### `RUNBOOK-TENANT.md` — reconstrucción en 10 pasos
+
+Contiene: las tres vías de obtención de tenant con su resultado real; las **5 decisiones
+irreversibles**; la ruta crítica; qué NO transfiere entre tenants; los 10 pasos con evidencia y
+trampas verificadas; qué es automatizable; y las fechas que vencen.
+
+**Hallazgos de método que quedaron escritos:**
+
+1. **La ruta crítica es P2** (habilitar carga de apps personalizadas): hasta 24 h de propagación.
+   Va primero, antes que nada, y lo demás se hace mientras espera. *La primera vez costó seis días
+   de retraso por hacerlo tarde.* **Regla general: identifica qué tiene latencia externa y
+   dispáralo antes que todo lo demás.**
+2. **Los tres campos `developer` del manifiesto siguen con la identidad del scaffold** (`My App,
+   Inc.`, `example.com`). Teams exige URLs válidas de privacidad y términos para publicar, y es lo
+   primero que mira un admin para juzgar si una app es legítima o phishing. **Nuevo riesgo R16.**
+   Es el mismo patrón que el `requirements.txt` del 2-sep: *confiar en un scaffold es heredar las
+   decisiones de otro sin revisarlas* — solo que aquí lo heredado es la identidad del producto.
+3. **El script de siembra necesitará permisos de escritura que Brújula no debe tener.** Decisión
+   registrada: **registro de app separado y de un solo inquilino** (`brujula-seed`), jamás
+   distribuido. Añadir `ReadWrite` a Brújula "solo para sembrar" ahorraría diez minutos y
+   destruiría el argumento más fuerte del producto ante un admin de TI. **Nuevo riesgo R17.**
+4. **Si solo se automatiza una cosa, que sea P9 (siembra de datos).** Es el paso más largo, el
+   único que se repite con frecuencia —no solo al cambiar de tenant, sino cada vez que se quiere un
+   estado limpio— y el único cuyo resultado usan los tests. Automatizar P1–P8 sería optimizar lo
+   que no duele.
+5. **P10.3 convierte el runbook en un test de acoplamiento.** Reconstruir el tenant y arrancar el
+   sistema cambiando **solo el `.env`** es la prueba empírica del requisito de OT-01. Si no
+   arranca, se acaba de localizar un identificador escrito a fuego en el código.
+
+> **REGLA ADOPTADA:** *un entorno que solo una persona sabe reconstruir es un punto único de fallo
+> con forma de infraestructura.* El runbook no es documentación burocrática: es lo que convierte un
+> riesgo (R11) en una tarea con duración conocida.
+
+> **REGLA ADOPTADA:** *un runbook se corrige el mismo día en que se ejecuta, no después.* Un
+> runbook desactualizado es peor que ninguno, porque alguien lo va a seguir igual.
+
+### `GUIA-INSTALACION-TI.md` — borrador honesto
+
+Escrita **para el que decide, no para el que usa**. Aplica la regla adoptada en OT-01: *no se
+diseña para el usuario final, se diseña para el administrador de TI que decide si la app entra.*
+
+Decisiones de redacción registradas:
+
+- **El procedimiento de revocación va en la portada, no en un anexo.** Un administrador confía en
+  lo que puede desinstalar; esconder cómo se quita da la señal contraria.
+- **La falta de *Verified Publisher* se declara en el documento** (§7) en vez de dejar que el admin
+  la descubra en la pantalla de aprobación.
+- **Se le pide explícitamente al admin que compare la lista de permisos** y que no apruebe si ve
+  algo distinto de los cinco de lectura. Es la defensa del cliente contra un enlace suplantado, y
+  a la vez la demostración de que no hay nada escondido.
+- **La sección 6 (tratamiento de datos) queda marcada 🔴 y en blanco.** Depende de OT-03B
+  (proveedor de LLM) y OT-04 (persistencia). **Es la primera sección que lee un administrador con
+  criterio: la guía no se envía a nadie hasta completarla.** Dejarla a medias sería peor que no
+  tener guía.
+
+### Estado del runbook
+
+Los pasos **P1–P5 y P10 están completos y verificados** (salieron de configuraciones ya ejecutadas).
+**P6, P7 y P8** (registro de bot, túnel, paquete de app) quedan marcados ⏳ y se completan al
+ejecutar OT-03A Fase 4. Hasta entonces el runbook está incompleto en su tercio final y **no permite
+reconstruir de punta a punta.**
+
+---
+
+## Sesión del 8-sep-2026 — Cierre de OT-02B (auditada) y redacción de OT-03A
+
+### Auditoría de la entrega: se ejecutó, no se leyó
+
+El código se subió desde el repo a un entorno limpio y se corrió la suite completa, los linters,
+y **sabotajes deliberados** de la *fitness function* para comprobar que sabe fallar.
+
+| Criterio | Resultado |
+|---|---|
+| `pytest` | ✅ **28 tests verdes** (2 más de los pedidos) |
+| `mypy --strict` | ✅ Success, 22 archivos |
+| `ruff check` | ✅ All checks passed |
+| `GET /health` · `GET /api/agenda` | ✅ 4 pendientes ordenados, el de `MENSAJE` al 72% |
+| App de Entra ID | ✅ **Multiple organizations**; 5 permisos delegados concedidos; **cero `ReadWrite`** |
+| `.env` ignorado / `.env.example` versionado | ✅ mismas claves, sin secretos |
+| Flujo de PR | ✅ **PR #1 mergeada** desde `feat/esqueleto-hexagonal` |
+| Sabotaje: `import fastapi` en el dominio | ✅ **FALLA** con el mensaje correcto |
+| Sabotaje: servicio importa adaptador | ✅ **FALLA** con el mensaje correcto |
+
+**La fitness function del ADR-004 funciona. No es decorativa.**
+
+### Lo que hizo bien el tech lead (registrado, porque también es evidencia)
+
+1. **Tradujo las carpetas al español y actualizó el test de arquitectura en consecuencia.** Si lo
+   hubiera pegado sin entenderlo, los bucles habrían iterado sobre listas vacías y los seis tests
+   habrían pasado en verde sin revisar nada. La guarda `test_hay_archivos_que_revisar` existía
+   para atrapar justo ese caso. **Leyó el código, no lo copió.**
+2. Añadió un invariante propio: `test_rechaza_contexto_vacio_cuando_se_proporciona`.
+3. Añadió `extend-exclude = ["spikes"]` a ruff por iniciativa propia. El código desechable no se
+   lintea.
+
+### 🔴 Hallazgo crítico — `AZURE_TENANT_ID` mal copiado
+
+`.env` contiene **35 caracteres**; un GUID tiene 36. Falta el primer carácter: el portal dice
+`337859e0-…`, el `.env` tiene `37859e0-…`.
+
+**No rompe nada hoy.** Los 28 tests pasan, la app arranca, `/api/agenda` responde. Nada lee todavía
+esa variable. Habría explotado en **OT-05**, contra Microsoft, con un `AADSTS900023` o un 401
+opaco, tres semanas después de la causa.
+
+> **REGLA ADOPTADA:** *un dato de configuración mal copiado es un bug silencioso de latencia
+> larga.* El código no lo valida porque "es solo configuración", y la distancia entre causa
+> (un `Ctrl+V` incompleto) y síntoma (un 401 en tres semanas) lo hace carísimo de diagnosticar.
+>
+> **La corrección no es "tener más cuidado" — eso no es una estrategia de ingeniería.** Es la
+> misma que ya se aplicó en `Pendiente.__post_init__`: **si un valor inválido no puede existir, no
+> hay que acordarse de comprobarlo después.** OT-03A añade validación de formato GUID a
+> `Configuracion`. El bug pasa a ser imposible.
+
+### Otros hallazgos abiertos
+
+| # | Hallazgo | Estado |
+|---|---|---|
+| 2 | `ruff format --check` falla: 11 archivos | Se cierra en F0 de OT-03A |
+| 3 | **OT-02A sigue abierta:** sin captura del bot en Teams | Se cierra en F4 de OT-03A |
+| 4 | ~~`spikes/teams-hello/` sigue rastreado~~ | **Retirado.** No es un hallazgo: es una decisión del tech lead ya registrada (R12, conservarlo como material de demostración). El mentor la había clasificado como omisión sin leer antes el registro del propio tech lead |
+| 5 | ~~Se volvió a trabajar sobre `main`~~ | **Retirado.** El PR #1 estaba mergeado; estar en `main` después de un merge es correcto. La única modificación sin commitear era la edición en curso de la bitácora |
+| 6 | `README.md` tiene una línea | §9: *"la cara del portafolio"*. Se cierra en F5 |
+
+### Decisión del tech lead: prioridad al avance demostrable
+
+Petición registrada: *"me gustaría ver todo más funcional, ver conectado el chat realmente, ir
+mostrando entregas de valor para ver el feedback"*.
+
+**Se invierte el orden del tablero.** Siguiendo el precedente 02A/02B, la OT-03 se parte:
+
+| | Contenido |
+|---|---|
+| **OT-03A** | El bot de Teams responde desde el núcleo hexagonal real |
+| **OT-03B** | Puerto `LLMProvider` + `FakeLLMProvider` + adaptador Gemini |
+
+**Justificación:** (1) es la entrega de valor mostrable; (2) convierte el ADR-004 de promesa en
+prueba —dos canales llamando al mismo `ServicioAgenda`—; (3) un LLM sin canal es invisible;
+(4) el checkpoint es el 16-sep y el criterio de "hecho" de F1 exige el bot vivo en Teams;
+(5) cierra OT-02A con evidencia mejor: el código permanente, no el spike.
+
+### 🎯 Hallazgo técnico — se resuelve la pregunta abierta del 2-sep: UN proceso, no dos
+
+La bitácora dejó abierto (Hallazgo 4 del 2-sep): *"el SDK oculta el servidor HTTP — dato relevante
+para F2, cuando haya que decidir si el bot y la API viven en el mismo proceso o en dos."*
+
+**Resuelto leyendo el código del SDK y después ejecutándolo.**
+`microsoft_teams/apps/http/fastapi_adapter.py` expone
+`FastAPIAdapter(app: Optional[FastAPI] = None)`: **acepta la instancia de FastAPI del proyecto.**
+Y `AppOptions` acepta `http_server_adapter`. Verificado en ejecución:
+
+```
+Rutas ANTES de montar el bot:    GET /health · GET /api/agenda
+Rutas DESPUES de montar el bot:  GET /health · GET /api/agenda · POST /api/messages
+Es la MISMA instancia de FastAPI? True
+```
+
+**Veredicto: un proceso, un desplegable, un servidor.** Coherente con ADR-004. La alternativa —bot
+en 3978 llamando por HTTP al núcleo en 8000— habría añadido un salto de red, un segundo desplegable
+y una fuente de fallos a cambio de nada.
+
+> **Munición de sustentación.** A *"¿por qué FastAPI?"* había ya una respuesta desde el 2-sep (el
+> SDK está construido sobre él). Ahora hay una segunda, más fuerte: **el SDK acepta la instancia de
+> FastAPI del proyecto, así que bot y API comparten servidor, modelo de datos y ciclo de vida.**
+
+### Decisión de arquitectura: adaptadores primarios vs secundarios
+
+OT-03A introduce la distinción y la hace **verificable**:
+
+- **Primario (*driving*)**: el mundo exterior entra por él. `app/api/` (HTTP), `app/bot/` (Teams).
+  Pueden llamar a los servicios.
+- **Secundario (*driven*)**: el sistema lo llama a él. `app/adaptadores/`. **No** pueden llamar a
+  los servicios.
+
+Confundirlos invierte la dirección de las flechas y crea dependencias circulares entre capas.
+
+**Reestructuración asociada:** `app/api/main.py` → `app/api/rutas.py` (un `APIRouter`), y nace
+`app/main.py` como **composition root**, el único módulo que conoce los dos canales. Así ningún
+canal importa al otro, y esa independencia —que es literalmente lo que afirma el ADR-009— pasa a
+estar cubierta por un test.
+
+### Tres reglas nuevas en la fitness function, todas verificadas por sabotaje
+
+| Regla | Afirmación que deja de ser una promesa |
+|---|---|
+| Adaptadores secundarios no llaman a servicios ni a canales | Las flechas apuntan hacia adentro también en el lado derecho del hexágono |
+| Ningún canal importa a otro canal | **ADR-009: el núcleo es agnóstico del canal.** En F4, la prueba de que la web no hizo trampa |
+| `tarjeta_agenda.py` solo conoce el dominio | La presentación es una función pura y por eso se testea sin Teams |
+
+### Hallazgo de ecosistema — el SDK no publica tipos
+
+`microsoft-teams-apps 2.0.16` **no trae marcador `py.typed` ni stubs `.pyi`** (verificado). Bajo
+`mypy --strict` produce 7 errores.
+
+> **REGLA ADOPTADA:** *cuando una dependencia externa obliga a relajar una regla de calidad, la
+> relajación se acota al módulo que la toca, nunca al proyecto.* La excepción cabe en
+> `app.bot.bot_teams`. Y el corolario es medible: **el tamaño de esa excepción es una métrica de
+> si la Capa de Bot Delgada (ADR-001) sigue siendo delgada.** El día que hubiera que extenderla a
+> `app/servicios/`, la capa habría dejado de serlo.
+
+Es la materialización exacta del riesgo residual anotado al cerrar R4: *el SDK es GA, pero su
+tooling de tipos no lo es.*
+
+### Correcciones del mentor en esta sesión
+
+| # | Defecto | Qué lo detectó | Corrección |
+|---|---|---|---|
+| 1 | Las dos líneas útiles del bot vivían **dentro** del handler | El intento de escribir un test sin Teams: no había nada testeable | Se extrajo `construir_respuesta_agenda()`. **Regla: el handler se queda con la entrada/salida y nada más** |
+| 2 | `field_validator` tipaba `info` como `object` | `mypy --strict` | `ValidationInfo`. Un `object` para no pensar el tipo es tipado de mentira |
+| 3 | Se asumió que el SDK traía tipos | `mypy` + verificación de `py.typed` | Excepción acotada, con el razonamiento escrito en `pyproject.toml` |
+
+> El defecto 1 es el más instructivo: **no lo detectó una herramienta, lo detectó el intento de
+> escribir un test.** Cuando algo es difícil de testear, casi nunca es culpa del test: es el diseño
+> avisando.
+
+### Verificación previa de la OT-03A
+
+Todo el código de OT-03A se escribió **sobre el código real del repo** y se ejecutó antes de
+entregarlo: **57 tests verdes**, `mypy --strict` limpio (29 archivos), `ruff check` y
+`ruff format --check` limpios, los tres endpoints en una sola instancia de FastAPI, y los tres
+sabotajes nuevos produciendo fallo. Los bloques de código del documento se **inyectaron desde los
+archivos verificados**, no se transcribieron.
+
+No verificable desde el entorno del mentor y marcado como tal en la orden: comandos de
+`devtunnel`, sideload y capturas.
 
 ---
 
@@ -159,6 +416,67 @@ en el repo:
 > **REGLA ADOPTADA:** *cuando un linter obliga a poner un `# type: ignore` o un `# noqa`, casi
 > nunca es la herramienta la que se equivoca: está señalando un diseño mejorable.* El defecto 3
 > es el caso exacto.
+
+---
+
+## Sesión del 8-sep-2026 — Ejecución de OT-02B: Fases 0 a 4 cerradas
+
+**Naturaleza de la sesión:** primera sesión de ejecución de código bajo modo **Guíame**. Iker
+escribió todo el código; el mentor entregó contrato, explicación y revisión línea por línea.
+
+### Qué quedó cerrado y verificado
+
+| Fase | Entregable | Verificación |
+|---|---|---|
+| F0 | `.gitattributes` (`* text=auto eol=lf`), `.gitignore` con regla `docs/OT-*.md` | Ruido CRLF de 218 líneas resuelto a 0. Documentos de trabajo (`OT-*.md`) fuera del repo por decisión del tech lead — no son estado durable |
+| F2/F3 | `dominio/`, `puertos/`, `servicios/`, `adaptadores/`, `api/` completos. `Pendiente`, `Agenda`, `ServicioAgenda`, `FuenteEjemplo`, FastAPI con `/health` y `/api/agenda` | 28 tests verdes, `mypy --strict` limpio, `ruff check .` limpio. *Fitness function* de arquitectura (`tests/test_arquitectura.py`) saboteada deliberadamente y verificada roja antes de confirmarla verde |
+| F4 | App multiinquilino registrada en Entra ID. `signInAudience: AzureADMultipleOrgs` verificado en Manifest. 5 permisos delegados, 0 `ReadWrite`, consentimiento de admin otorgado (verificado en *API permissions*, no solo asumido por el redirect) | Evidencia en `docs/evidencia/` |
+
+**Decisión de nomenclatura (tech lead):** las cuatro carpetas de la arquitectura hexagonal se
+nombran en español — `dominio`, `puertos`, `servicios`, `adaptadores` — en vez del inglés
+`domain/ports/services/adapters` de la OT-02B original. Los archivos internos de cada capa
+conservan sus nombres originales. El mentor registró una objeción (esos cuatro nombres son el
+vocabulario fijo internacional del patrón Ports & Adapters, no vocabulario de negocio en el sentido
+de DDD) pero la decisión del tech lead se ejecutó tal cual.
+
+**Hallazgo nuevo en Entra ID:** el portal advierte que *"End users cannot grant consent to newly
+registered multitenant apps without verified publishers"*. Pendiente para la futura Guía de
+Instalación (requiere alta en el Microsoft Partner Network; no se resuelve hoy).
+
+### Decisión: Fase 1 diferida
+
+El tech lead decidió posponer el sideload en Teams (cierre real de OT-02A) para priorizar el
+avance del esqueleto. **Riesgo actualizado:** el tenant `brujulateams.onmicrosoft.com` vence el
+15-sep-2026. La evidencia de F1 debe capturarse antes de esa fecha o deja de ser capturable para
+este tenant (ver R11 en Riesgos).
+
+### Decisión: Fase 5 fraccionada entre sesiones
+
+Commits ya realizados y pusheados a `feat/esqueleto-hexagonal` (no siguen el patrón exacto de
+`F5.2` en `OT-02B.md`, que asumía carpetas en inglés y commits aún no hechos; el criterio de fondo
+— log legible por unidad lógica — se cumple igual):
+
+```
+63538dd test: cobertura de dominio, servicios, API y estructura de la arquitectura hexagonal
+8cb2d07 feat: construccion FastAPI, endpoint de salud y agenda, tests, backend en memoria
+8f1ecda feat: dominio completo, contratos, servicios y adaptadores, config.py
+e319b54 fix: reorganizar adaptadores/servicios, mover tests a raiz y agregar tooling
+72d2363 feat: creacion completa estructura del proyecto
+```
+
+**8-sep, actualización:** `feat/esqueleto-hexagonal` pusheada a `origin`. Pull Request contra
+`main` abierto por el tech lead el mismo día.
+
+**Pendiente, a ejecutar por el tech lead directamente en una sesión futura:**
+1. Borrar `spikes/teams-hello/` — condicionado a tener la evidencia de F1 (regla ya existente en
+   `OT-02B.md`, F5.1). **Decisión adicional del tech lead:** conservarlo más allá de ese punto,
+   como material de demostración para la profesora. Ver R12 en Riesgos.
+2. Actualizar `spikes/README.md` con las conclusiones antes de borrar.
+
+### Pregunta de comprensión abierta (batch de fin de OT, aún no cerrado)
+
+Pendiente de responder por el tech lead: *¿por qué en `test_servicio_agenda.py` el pendiente sin
+fecha (`vence=None`) se ordena al final y no al principio? ¿Es una decisión técnica o de producto?*
 
 ---
 
@@ -988,4 +1306,10 @@ Brechas detectadas. **Repasar antes de la sustentación.**
 | R8 | **Entregables E2/E3/E4 del curso sin verificar** | 🔴 **Nuevo. Abierto por decisión del tech lead** |
 | R9 | **Ventana real de 8 semanas, no 14** | 🔴 **Nuevo. Mitigado con recorte del RAG** |
 | R10 | **Rúbrica exige responsive Desk+Mobile; el bot no lo cumple literalmente** | 🟠 **Nuevo. ADR-009, disparador 30-sep** |
-| R11 | **Tenant vence el 15-sep** | 🟠 **Nuevo. Requiere decisión de pago** |
+| R11 | **Tenant vence el 15-sep** | 🟡 **DEGRADADO de 🔴 a 🟡 (8-sep).** Decisión del tech lead: **no se paga; el tenant se reconstruye.** Con `RUNBOOK-TENANT.md` escrito, un tenant caído deja de ser un riesgo de proyecto y pasa a ser ~2 h de trabajo + 24 h de propagación. **Residual:** los pasos P6–P8 (bot, túnel, paquete) siguen sin ejecutarse ni documentarse; hasta OT-03A el runbook está incompleto en su tercio final |
+| R12 | **Spike de Teams se conserva más allá de lo previsto** (decisión del tech lead, para demos a la profesora) | 🟡 **Nuevo (8-sep).** Revisar antes de la entrega final — el repo no debería llegar a sustentación con un spike desechable adentro |
+| R13 | **El SDK de Teams no publica tipos (`py.typed` ni stubs)** | 🟡 **Nuevo (8-sep).** Verificado en `microsoft-teams-apps 2.0.16`. Bajo `mypy --strict` produce 7 errores. Mitigado con excepción acotada a `app.bot.bot_teams`. **El tamaño de esa excepción es la métrica de si la Capa de Bot Delgada sigue siendo delgada** |
+| R14 | **Datos de configuración mal copiados: bugs silenciosos de latencia larga** | 🟢 **Nuevo (8-sep).** Detectado en `AZURE_TENANT_ID` (35 caracteres en vez de 36). Habría explotado en OT-05 con un error opaco. Se cierra con validación de formato GUID en `Configuracion` (OT-03A, Fase 1) |
+| R15 | **Los usuarios finales no pueden consentir apps multiinquilino sin *verified publisher*** | 🟠 **Abierto (8-sep).** Afecta al modelo ISV (ADR-003). Requiere alta en Microsoft Partner Network. Documentado con honestidad en `GUIA-INSTALACION-TI.md` §7: se le dice al admin antes de que lo descubra en la pantalla de aprobación. **No bloquea el desarrollo en tenant propio** |
+| R16 | **El manifiesto de Teams conserva la identidad del scaffold** (`My App, Inc.`, `example.com` en privacy y términos de uso) | 🟠 **Nuevo (8-sep).** Teams **exige** URLs válidas de privacidad y términos para publicar. Y es lo primero que mira un admin de TI para decidir si una app es legítima. Se cierra en OT-03A P8 |
+| R17 | **`scripts/seed_tenant.py` necesitará permisos de escritura que Brújula no debe tener** | 🟡 **Nuevo (8-sep).** Mitigación decidida: **registro de app separado y de un solo inquilino** (`brujula-seed`), nunca distribuido. Añadir `ReadWrite` a la app de Brújula destruiría su argumento comercial ante un admin de TI |

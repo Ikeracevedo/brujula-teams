@@ -71,8 +71,8 @@ class ServicioAgenda:
         return sorted(
             pendientes,
             key=lambda p: (
-                p.vence is None,          # False (0) antes que True (1)
+                p.vence is None,  # False (0) antes que True (1)
                 p.vence or datetime.max,  # desempate por fecha
-                -p.confianza,             # mas confiable primero
+                -p.confianza,  # mas confiable primero
             ),
         )

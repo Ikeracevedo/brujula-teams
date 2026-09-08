@@ -25,6 +25,7 @@ def _pendiente_valido(**cambios: object) -> Pendiente:
 
 # --- Camino feliz -----------------------------------------------------
 
+
 def test_construye_un_pendiente_valido() -> None:
     p = _pendiente_valido()
     assert p.titulo == "Entregar informe"
@@ -40,6 +41,7 @@ def test_pendiente_de_baja_confianza_es_inferido() -> None:
 
 
 # --- Invariantes: casos de error --------------------------------------
+
 
 def test_rechaza_titulo_vacio() -> None:
     with pytest.raises(ValueError, match="titulo"):
@@ -69,6 +71,7 @@ def test_rechaza_contexto_vacio_cuando_se_proporciona() -> None:
 
 
 # --- Casos borde ------------------------------------------------------
+
 
 def test_acepta_pendiente_sin_fecha_de_vencimiento() -> None:
     """Una tarea de To Do sin fecha es valida."""

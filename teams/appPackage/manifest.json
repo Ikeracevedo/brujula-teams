@@ -1,0 +1,71 @@
+{
+    "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.29/MicrosoftTeams.schema.json",
+    "manifestVersion": "1.29",
+    "version": "1.0.0",
+    "id": "a3f7c9e2-8b41-4d6a-9e3f-1c5b7d2a6f04",
+    "developer": {
+        "name": "My App, Inc.",
+        "websiteUrl": "https://www.example.com",
+        "privacyUrl": "https://www.example.com/privacy",
+        "termsOfUseUrl": "https://www.example.com/termofuse"
+    },
+    "icons": {
+        "color": "color.png",
+        "outline": "outline.png"
+    },
+    "name": {
+        "short": "Brújula",
+        "full": "Brújula"
+    },
+    "description": {
+        "short": "Tus pendientes de Microsoft 365, unificados.",
+        "full": "Brújula unifica los pendientes dispersos de Planner, To Do, Calendario y mensajes de Teams, y te dice qué tienes esta semana con enlace a la fuente exacta."
+    },
+    "accentColor": "#FFFFFF",
+    "supportsChannelFeatures": "tier1",
+    "bots": [
+        {
+            "botId": "71243d99-4ea3-43ab-8f0f-18fea2cf950b",
+            "scopes": [
+                "personal",
+                "team",
+                "groupChat"
+            ],
+            "isNotificationOnly": false,
+            "supportsTargetedMessages": false,
+            "supportsCalling": false,
+            "supportsVideo": false,
+            "supportsFiles": false,
+            "commandLists": [
+                {
+                    "scopes": [
+                        "personal",
+                        "team",
+                        "groupChat"
+                    ],
+                    "triggers": [
+                        "mention"
+                    ],
+                    "commands": [
+                        {
+                            "title": "semana",
+                            "description": "Qué tienes en los próximos 7 días"
+                        },
+                        {
+                            "title": "ayuda",
+                            "description": "Ver qué sabe hacer Brújula"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "composeExtensions": [],
+    "configurableTabs": [],
+    "staticTabs": [],
+    "permissions": [
+        "identity",
+        "messageTeamMembers"
+    ],
+    "validDomains": []
+}

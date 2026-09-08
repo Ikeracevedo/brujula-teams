@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 
@@ -24,5 +22,6 @@ class FuenteNoDisponibleError(BrujulaError):
         self.motivo = motivo
         super().__init__(f"No se pudo consultar '{nombre_fuente}': {motivo}")
 
+
 class ConfiguracionInvalidaError(BrujulaError):
-     """Falta una variable de entorno obligatoria o tiene un valor imposible."""
+    """Falta una variable de entorno obligatoria o tiene un valor imposible."""

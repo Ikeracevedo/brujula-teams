@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 
+from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Validador de campos de la las variables de entorno que deben ser GUID. Se usa en Configuracion.
+_GUID = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 
 class Configuracion(BaseSettings):
@@ -20,8 +25,29 @@ class Configuracion(BaseSettings):
     azure_client_secret: str = ""
     azure_redirect_uri: str = "http://localhost:8000/auth/callback"
 
+    # Credenciales del registro de bot (Bot Framework / Azure Bot).
+    # Distintas del registro de Entra ID para Graph: son dos identidades.
+    teams_bot_id: str = ""
+    teams_bot_password: str = ""
+
     gemini_api_key: str = ""
     mongodb_uri: str = ""
+
+    @field_validator("azure_tenant_id", "azure_client_id", "teams_bot_id")
+    @classmethod
+    def _debe_ser_guid_si_tiene_valor(cls, v: str, info: ValidationInfo) -> str:
+        """
+        Mismo principio que Pendiente.__post_init__: si un valor invalido
+        no puede existir, no hay que acordarse de comprobarlo mas tarde.
+        Vacio se acepta: significa "todavia no configurado".
+        """
+        v = v.strip()
+        if v and not _GUID.match(v):
+            raise ValueError(
+                f"{info.field_name} no tiene forma de GUID ({len(v)} caracteres; "
+                f"un GUID tiene 36). Revisa que lo copiaste completo desde el portal."
+            )
+        return v
 
 
 @lru_cache

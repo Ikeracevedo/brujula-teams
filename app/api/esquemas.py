@@ -56,8 +56,7 @@ class AgendaDTO(BaseModel):
             esta_completa=agenda.esta_completa,
             fuentes_consultadas=list(agenda.fuentes_consultadas),
             fuentes_fallidas=[
-                FuenteFallidaDTO(nombre=f.nombre, motivo=f.motivo)
-                for f in agenda.fuentes_fallidas
+                FuenteFallidaDTO(nombre=f.nombre, motivo=f.motivo) for f in agenda.fuentes_fallidas
             ],
             pendientes=[PendienteDTO.desde_dominio(p) for p in agenda.pendientes],
         )

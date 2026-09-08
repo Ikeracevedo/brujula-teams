@@ -22,10 +22,7 @@ class FuenteEjemplo:
         todos = self._datos(desde)
         # Filtra a la ventana pedida. Sin fecha (vence=None) siempre pasa,
         # porque una tarea sin vencimiento no se puede excluir por fecha.
-        return [
-            p for p in todos
-            if p.vence is None or desde <= p.vence <= hasta
-        ]
+        return [p for p in todos if p.vence is None or desde <= p.vence <= hasta]
 
     @staticmethod
     def _datos(referencia: datetime) -> list[Pendiente]:
