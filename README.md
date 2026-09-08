@@ -1,7 +1,7 @@
 <div align="center">
   <img src="docs/logo-upb.png" alt="Universidad Pontificia Bolivariana" width="340"/>
 
-  <h1>🧭 Brújula</h1>
+  <h1>🧭 Brújula Teams </h1>
 
   <p><strong>Tus pendientes están regados entre Planner, To Do, el calendario y un mensaje perdido<br>
   en un canal de Teams. Brújula los reúne todos y te dice, de una vez, qué tienes esta semana.</strong></p>
@@ -56,7 +56,7 @@ confianza, para que lo verifiques tú.
 
 ---
 
-## Arquitectura, en corto
+## Arquitectura
 
 Brújula es **un solo backend con dos puertas de entrada** que hacen la misma pregunta al mismo
 motor interno — no hay una copia de la lógica por canal:
@@ -110,11 +110,11 @@ Teams) funcionan de punta a punta. Lo siguiente que se suma:
 
 ## Equipo
 
-| Integrante | A cargo de |
+| Integrante |
 |---|---|
-| Iker Acevedo | Arquitectura, backend y canal de Teams |
-| Julián | Lectura e ingesta de documentos |
-| Antonio | Calidad, pruebas y documentación de usuario |
+| Iker Acevedo | 
+| Julián | 
+| Antonio |
 
 Ingeniería de Sistemas e Informática · Universidad Pontificia Bolivariana
 Proyecto en TIC 1
