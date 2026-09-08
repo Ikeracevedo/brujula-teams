@@ -111,7 +111,7 @@ Teams) funcionan de punta a punta. Lo siguiente que se suma:
 ## Equipo
 
 | Integrante |
-|---|---|
+|---|
 | Iker Acevedo | 
 | Julián | 
 | Antonio |
