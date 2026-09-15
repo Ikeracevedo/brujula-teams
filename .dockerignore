@@ -1,0 +1,17 @@
+.venv
+.git
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.agents
+.claude
+__pycache__
+*.pyc
+tests
+spikes
+docs
+teams/appPackage/*.zip
+*.log
+.env
+.env.example
+README.md

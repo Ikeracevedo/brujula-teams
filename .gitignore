@@ -226,3 +226,7 @@ docs/OT-*.md
 .agents
 CLAUDE.md
 GEMINI.md
+
+# Paquetes de Teams generados (build artifact, se regenera desde manifest.json + iconos)
+teams/appPackage/*.zip
+teams/appPackage/debug.log
