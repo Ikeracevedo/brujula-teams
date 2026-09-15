@@ -62,9 +62,11 @@ ni aunque quisiera: los permisos que se lo permitirían no están en la solicitu
 requeriría una nueva aprobación suya.
 
 Tampoco se solicita `ChannelMessage.Read.All` — el permiso que daría acceso a los mensajes de los
-canales de la organización. 🔴 *Pendiente: si en el futuro se necesitara, la vía prevista es RSC
-(Resource-Specific Consent), donde el propietario de un equipo concreto autoriza la app solo sobre
-ese equipo. Se documentará como una decisión suya, equipo por equipo.*
+canales de la organización. Se confirmó (13-sep-2026) que ese permiso es *Protected API* y no se
+consigue por el camino normal de esta guía: cuando se necesite, la vía es **RSC** (*Resource-Specific
+Consent*), donde el propietario de un equipo concreto autoriza la app solo sobre ese equipo — sin
+pasar por usted como administrador del tenant. Se documentará como una decisión suya, equipo por
+equipo, cuando esa fuente esté implementada.
 
 > Sobre `Team.ReadBasic.All`: el sufijo `.All` suele encender alarmas y es correcto que así sea.
 > En este caso cubre **únicamente nombres y descripciones** de los equipos a los que el usuario ya

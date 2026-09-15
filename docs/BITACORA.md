@@ -7,15 +7,289 @@
 **OT activa:** **OT-03A** — El canal de Teams sobre el núcleo real (`docs/OT-03A.md`), redactada
 y verificada, lista para ejecutar
 **OT-02B:** ✅ CERRADA (8-sep-2026), auditada ejecutando la suite. PR #1 mergeada
-**OT-02A:** 95% — bot vivo respondiendo en Teams contra el código permanente (`app/main.py`, no el
-spike). Capturas de `ayuda` y `semana` ya en `docs/evidencia/`. Falta solo F4.5 (ver abajo) para
-cerrarla del todo. ⚠️ Debe capturarse **antes del 15-sep** (vencimiento del tenant, R11)
+**OT-02A:** 98% — bot vivo respondiendo en Teams contra el código permanente (`app/main.py`, no el
+spike). **F4.5 (Graph) ya cerrada** (13-sep): 403, `ChannelMessage.Read.All`, decisión de RSC
+registrada. Solo faltan 2 de las 4 capturas de F4.4 (instalación de la app y un mensaje fuera de
+alcance — ya están `ayuda` y `semana`). ⚠️ Debe cerrarse **antes del 15-sep** (vencimiento del
+tenant, R11)
 **OT-01:** ✅ CERRADA (23-ago-2026)
 **Repositorio:** `brujula-teams` (público) — `github.com/Ikeracevedo/brujula-teams`
 **Nombre del proyecto:** **Brújula**
 **⏰ ENTREGA FINAL: 28 DE OCTUBRE DE 2026.** Checkpoints: 16 sep · 30 sep · 14 oct · 28 oct
 **Documentos vivos:** `PLAN-COMPLETO.md` · `BITACORA.md` · `RUNBOOK-TENANT.md` · `GUIA-INSTALACION-TI.md` (borrador) · `GUIA-OPERACION.md`
-**Última actualización:** 8 de septiembre de 2026 (bot de Teams funcional, F4 de OT-03A en curso)
+**Última actualización:** 13 de septiembre de 2026 (noche — auditoría de OT-03A, runbook completado,
+reglas de agente reescritas, tablero fechado; reconstrucción del tenant prevista para el 14-sep)
+
+---
+
+## Sesión del 13-sep-2026 (noche) — OT-03A auditada, runbook cerrado y tablero con fechas
+
+### Auditoría de OT-03A: ✅ CERRADA
+
+Se trajo el repo a un entorno limpio y se ejecutó. No se leyó: se corrió.
+
+| Comprobación | Resultado |
+|---|---|
+| `pytest` | ✅ **57 verdes** |
+| `mypy --strict` | ✅ Success, 29 archivos |
+| `ruff check` / `ruff format --check` | ⚠️ **1 error** — `import logging` fuera de orden en `app/main.py` |
+| Bot en Teams real | ✅ Verificado en `Brujula-resumen.semanal.png`: *"Tu semana — 4 pendientes, 3 confirmados, 1 inferidos"* |
+| **4 sabotajes de arquitectura** | ✅ **Los cuatro fallan** con el mensaje correcto |
+
+**Los cuatro guardarraíles del ADR-004 funcionan.** No son decorativos.
+
+**Reconocimiento registrado:** la **prueba de reinicio completo de la máquina** siguiendo la propia
+`GUIA-OPERACION.md` es *probar* un runbook, no escribirlo — casi nadie lo hace, y encontró un
+hallazgo real (`$env:Path` con `+=` no sobrevive un reinicio). Y **auditar el tablero contra
+criterios literales sin mover nada a Done** es disciplina poco común: un tablero que miente es peor
+que no tener tablero.
+
+### Respuesta del docente — R10 se degrada
+
+**Registrado literalmente como lo reportó el tech lead (13-sep):** *"los criterios de aceptación no
+son checklist, los cumplí pero realmente no me detuve a cambiar el texto. Nosotros le explicamos al
+docente la forma de trabajar y no hay problemas."*
+
+**R10 pasa de 🟠 a 🟡.** El docente conoce y acepta la forma de trabajo.
+
+> **Salvedad del mentor, registrada:** la respuesta es **verbal y no textual**. El criterio de
+> aceptación de esa tarjeta pedía *"respuesta registrada literalmente"* y *"por escrito si es
+> posible"*. Con 6 semanas para la entrega y la nota apostada a un solo canal, un correo de dos
+> líneas —*"confirmo que el agente en Teams satisface el requisito de implementación responsive"*—
+> convierte un acuerdo en evidencia. **Recomendación abierta, decisión del tech lead.**
+
+### 🔴 Reglas de agente: reescritas para no contradecir los ADR
+
+**Hallazgo:** `.agents/rules/01-code-standards.md` era el perfil general de Iker y prescribía
+**.NET / C# / Angular / AWS / microservicios / serverless**, contradiciendo ADR-001 (Python), ADR-004
+(monolito modular, microservicios descartados como YAGNI) y la elección de Azure.
+
+> **El principio, más importante que el caso:** *las reglas de un agente son configuración de
+> producción.* Si contradicen la arquitectura del repo, **el agente no se equivoca: obedece.** Y el
+> daño es peor que el de un humano confundido, porque el agente no duda — aplica la regla con
+> confianza y en muchos archivos a la vez.
+
+**Corrección de la recomendación del mentor.** La propuesta original (OT-04, F0.3) era crear un
+`05-brujula-arquitectura.md` **con precedencia** sobre el 01. **Era peor solución:** dos documentos
+que se contradicen con un árbitro siguen siendo dos documentos que se contradicen, y tarde o
+temprano alguien lee el equivocado. *Las reglas de precedencia son un olor a diseño; lo correcto es
+que no haya contradicción.*
+
+**Con autorización del tech lead, se reescribieron los cinco archivos** (13-sep):
+
+| Archivo | Qué cambió |
+|---|---|
+| `00-identity.md` | Slack → chat y bitácora. Añadida la regla *verificar, no predecir* |
+| `01-code-standards.md` | .NET/Angular/AWS/microservicios → **el stack real**, la arquitectura hexagonal con sus reglas verificadas, y las reglas de producto como restricciones de código |
+| `02-security.md` | **Fuera los IDs de cuentas AWS del trabajo.** Ahora: secretos, mínimo privilegio en Graph, aislamiento entre usuarios (OWASP #1), honestidad |
+| `03-workflow.md` | Pipelines a AWS → ciclo de OT y Definition of Done reales |
+| `04-autonomy-levels.md` | Aprobaciones por Slack → en el chat; lista concreta de qué es 🔴 INPUT |
+
+**Buena decisión previa del tech lead, verificada:** `.agents`, `CLAUDE.md` y `GEMINI.md` **están en
+`.gitignore`**, así que los identificadores de cuentas AWS del empleador **nunca estuvieron en el
+repositorio público**. El problema era de contexto del agente, no de exposición.
+
+### `RUNBOOK-TENANT.md` completado — se usa mañana
+
+**P6, P7 y P8 llevaban desde el 8-sep marcados ⏳.** Se rellenaron con los datos reales de la
+ejecución de OT-03A, y se añadió un paso nuevo:
+
+- **P6** — recurso **Azure Bot** (no registro suelto): tier **F0** gratuito, tipo **Multi Tenant**,
+  canal de Teams. Con la advertencia de que el secreto del bot **vence por separado** del de Entra.
+- **P6b — NUEVO.** Conexión OAuth del bot. `Tenant ID = common`, los 5 scopes, redirect URI de
+  `token.botframework.com`. **Es la única sección del runbook escrita desde la documentación y no
+  desde la experiencia**, y queda marcada como tal.
+- **P7** — túnel persistente `brujula-dev`, con el hallazgo del `$env:Path`. Descubrimiento útil:
+  **el túnel NO se pierde al cambiar de tenant** (está creado con cuenta personal).
+- **P8** — el `botId` es **el único campo que rompe el paquete** al cambiar de tenant, y falla en
+  silencio: la app instala sin error y el bot no responde nunca.
+- **Sección nueva "🗓️ Día de la reconstrucción"** con el orden del día, los tres errores más caros
+  y la verificación P10.3.
+
+> **Patrón detectado y escrito:** la decisión "multiinquilino" hay que tomarla **tres veces** —
+> tipo de cuenta de Entra (P3), *Type of App* del Azure Bot (P6) y `Tenant ID` de la conexión OAuth
+> (P6b). Acertar en dos y fallar en una deja el sistema roto de una forma que solo se descubre
+> cuando un usuario externo intenta entrar.
+
+### Decisión: la reconstrucción del tenant se hace el **14-sep**, antes de OT-04
+
+Se incorpora a `OT-04.md` como **Fase −1**, porque la conexión OAuth (F1) se configura sobre el
+registro de bot del tenant **nuevo**: hacerla en el viejo sería trabajo tirado.
+
+**La reconstrucción es además la validación empírica del runbook** (P10.3): si el sistema arranca
+cambiando solo el `.env`, queda demostrado el requisito de OT-01 — *cambiar de tenant cuesta solo
+variables de entorno*. Si no arranca, se acaba de localizar un identificador escrito a fuego en el
+código.
+
+### Tablero de Trello: 30 tarjetas fechadas
+
+Alineadas con los checkpoints del curso (hora de cierre: 18:00 Bogotá):
+
+| Fecha | Qué | Cuántas |
+|---|---|---|
+| **16-sep** | OT-04 — autenticación delegada y calendario real | 9 |
+| **30-sep** | OT-05 — Planner, To Do, unificación, hito HU-07.9 | 8 |
+| **14-oct** | OT-06 — LLM, Mongo, mensajes de canal (RSC) | 7 |
+| **21-oct** | Diagramas de rúbrica + documento de arquitectura + **despliegue público** | 5 |
+| **27-oct** | Ensayo de sustentación | 1 |
+
+**Sin fecha, a propósito:** `🔭 IDEAS A LARGO PLAZO` — es backlog parqueado, no trabajo comprometido.
+
+> **Por qué los diagramas y el despliegue van el 21 y no el 28:** son requisitos literales de la
+> rúbrica y el despliegue es lo que hace que la demo exista sin el portátil de Iker encendido.
+> Ponerlos la víspera es apostar la nota a que nada salga mal el último día.
+
+**Solo se asignaron fechas. No se movió ninguna tarjeta de lista** — eso lo hace el tech lead.
+
+### ⚠️ Dos tarjetas con criterios de aceptación obsoletos
+
+El hallazgo del 13-sep (el SDK resuelve la autenticación) **invalida criterios ya escritos**:
+
+| Tarjeta | Criterio obsoleto | Realidad |
+|---|---|---|
+| **HU-03.2** | *"Flujo OAuth 2.0 authorization code + PKCE implementado"*, *"el `state` de OAuth se valida"* | No se implementa a mano: `ctx.sign_in()` del SDK lo hace |
+| **HU-03.3** | *"Los refresh tokens se almacenan cifrados en reposo"*, *"la clave de cifrado vive en variable de entorno"* | **No hay refresh tokens que cifrar.** Los custodia el Bot Framework Token Service |
+
+> **Esto es bueno, no malo, y hay que saber contarlo.** El ADR-002 pedía *"cero credenciales
+> almacenadas; solo tokens de corta vida y refresh tokens cifrados"*. La realidad quedó **más
+> fuerte que la promesa**: ni siquiera hay refresh tokens que cifrar. Ante *"¿dónde guardan los
+> tokens?"*, la respuesta es *"en ningún sitio: los custodia el servicio de identidad de Microsoft;
+> nosotros pedimos uno vigente por petición"*.
+>
+> **Pendiente del tech lead:** reescribir los criterios de esas dos tarjetas. Un criterio de
+> aceptación que ya no se puede cumplir porque el mundo cambió no se marca como hecho: se corrige.
+
+### Deuda que sigue abierta
+
+| # | Qué | Dónde se cierra |
+|---|---|---|
+| 1 | `ruff check` / `format` en rojo por `app/main.py` | OT-04 F0.1 (`ruff check . --fix`) |
+| 2 | `manifest.json` → `developer` sigue en `My App, Inc.` / `example.com` (R16) | OT-04 F0.2 |
+| 3 | Faltan 2 de 4 capturas de OT-02A + la de móvil | OT-04 F6 |
+| 4 | **No hay CI** — lo exige el propio Definition of Done | OT-04 F7.1 |
+| 5 | Bot probado solo en ámbito `personal`, no en `team` ni `groupChat` | OT-04 F6.7 |
+| 6 | Trazabilidad probada con 1 fuente de 4; "Ver origen" sin verificar a mano | OT-04 F6.7 |
+| 7 | **E2/E3/E4 sin verificar (R8)** | Sin fecha asignada |
+| 8 | **Paquetes de Julián y Antonio: cero menciones desde el 23-ago** | Ver abajo |
+
+> **Sobre el punto 8.** El plan asignó a Antonio el **golden dataset** de 40+ preguntas y lo
+> calificó como *"el entregable más valioso del proyecto después del núcleo"*, porque es la
+> respuesta a la pregunta 3 de sustentación — *"¿cómo mides que responde bien?"*, la que tumba
+> proyectos de IA. **Sin golden dataset no hay métrica, y esa pregunta va a llegar.** El plan dice
+> que están fuera de la ruta crítica y que el proyecto se sustenta igual; eso sigue siendo cierto
+> para el código, no para esa respuesta.
+
+---
+
+## Sesión del 9 al 13-sep-2026 — Reinicio validado + auditoría del tablero de Trello
+
+**Prueba de reinicio completo de la máquina — pasó.** Se apagó el computador y se volvió a levantar
+todo desde cero siguiendo `docs/GUIA-OPERACION.md` al pie de la letra: venv, túnel, `uvicorn`,
+`/health`, y `ayuda`/`semana` en Teams real. Todo funcionó. Único hallazgo operativo: el
+`$env:Path` que agrega `C:\devtunnel` **no sobrevive un reinicio** si se fijó con `$env:Path +=`
+(scope de sesión, no persistente). Se corrigió con
+`[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\devtunnel", "User")`, que si es
+permanente — pero solo lo recogen ventanas de terminal **nuevas después de reiniciarla por completo**
+(no basta una pestaña nueva en la misma aplicación de terminal). Mientras se confirma que quedó
+bien fijado, `C:\devtunnel\devtunnel.exe --version` (ruta completa) es el atajo que no depende de
+nada de esto.
+
+**Auditoría del tablero de Trello (`brujula-teams` en Trello) contra su propio Definition of
+Done.** Se archivaron las 6 tarjetas introductorias/meta (cómo usar el tablero, leyenda de
+etiquetas, Definition of Ready, resumen del MVP, fechas/riesgos, Definition of Done) — quedaban
+redundantes con este documento y con `PLAN-COMPLETO.md`. Se archivó `🔭 IDEAS A LARGO PLAZO` — no,
+esa se dejó intacta, es backlog parqueado a propósito, no introductoria.
+
+Se revisó cada HU candidata a "Done" contra sus propios criterios de aceptación literales, no de
+memoria. **Conclusión: ninguna cumple el 100% todavía**, aunque el avance real es significativo.
+Brechas concretas encontradas: HU-04.1 sin probar en scopes `team`/`groupChat` (solo `personal`);
+HU-04.3 sin captura de **móvil** (solo escritorio); HU-04.4 sin comando de **estado** que reporte
+fuentes conectadas; HU-07.1 sin la excepción `FuenteSinPermiso`; HU-07.6 **sin deduplicación**
+(ni empezada); HU-07.7/HU-04.6 sin tests por tipo de fallo de Graph (403/401/timeout/429, porque
+no existe adaptador real de Graph todavía); HU-07.8 probado con 1 fuente de las 4 que pide;
+HU-02.1 sin el README de una línea por carpeta. **Decisión: no se movió ninguna tarjeta a Done**
+hasta resolver con Iker si hay CI configurado y si `feat/canal-teams` ya se mergeó a `main` — el
+propio Definition of Done archivado los exige a ambos, sin excepciones.
+
+**Hallazgo de diseño del tablero:** la tarjeta introductoria (antes de archivarla) reveló que el
+tablero se diseñó con **5 listas** (Backlog, To do, Doing, QA/Review, Done), pero hoy solo existen
+3 (falta Doing y QA/Review). Sin "Doing" no hay dónde poner una HU "a medias" sin forzarla
+prematuramente a Done — pendiente de decidir con Iker si se recrean esas dos listas.
+
+**Decisión (13-sep-2026, tech lead): el spike de Teams (`spikes/teams-hello/`) NO se retira todavía.**
+Cambia la HU-01.6 original ("borrar el spike"), que se archivó en Trello con la nota de la decisión
+nueva escrita en su descripción, en vez de perderse. Razón: el spike sigue vivo y funcional, y no
+hay urgencia de limpiarlo mientras el canal permanente (`app/bot/`) siga demostrando ser sólido. Si
+más adelante hace falta, se retira con una HU más simple, o se crea un spike nuevo aparte para otra
+pregunta — lo que importa ahora es que el canal permanente ya existe y funciona.
+
+**F4.5 cerrada — resultado de Graph Explorer (13-sep-2026):** `GET /teams/{team-id}/channels/
+{channel-id}/messages` → **`403 Forbidden`**, permiso exacto `ChannelMessage.Read.All` (*Protected
+API*, distinto de `Chat.Read` que sí cubre chats 1-a-1/grupales sin problema). **Decisión
+registrada:** la fuente `MENSAJE` se mantiene en el alcance del proyecto, condicionada a
+implementar **RSC (Resource-Specific Consent)** cuando se construya su adaptador de Graph
+(HU-07.5) — no se descarta ni se limita a chats. Detalle completo (team-id, channel-id, cuerpo del
+error) en la tarjeta de Trello HU-01.5 (movida a Done) y en `docs/RUNBOOK-TENANT.md` §10.2.
+Actualizados en consecuencia: `RUNBOOK-TENANT.md` §10.2, `GUIA-INSTALACION-TI.md` §2, y
+`OT-03A.md` (F4.5 y Compuerta F4 — con la corrección honesta de que solo 2 de las 4 capturas de
+F4.4 están listas, no las 4; no se marcó nada como hecho sin verificarlo primero contra la carpeta
+`docs/evidencia/` real).
+
+**Auditoría y limpieza del tablero de Trello — continuación:** se archivó la HU-01.6 ("Retirar el
+spike") con su descripción reescrita para registrar la decisión nueva antes de archivarla (ver
+sesión anterior). Se cerró HU-01.5 con el resultado de Graph de arriba — es la primera HU movida a
+Done en esta auditoría, porque a diferencia de las HUs de código, sus criterios de aceptación no
+dependen de CI ni de un PR mergeado, solo de haber hecho la medición y registrado la decisión.
+
+**Cierre de sesión (13-sep-2026) — confirmado por Iker con `git log --oneline --graph --decorate
+--all`:**
+
+```
+*   bac76d8 (HEAD -> main, origin/main, origin/HEAD) fix: logging backend
+|\
+| * d4b7924 docs: correccion de tabla de integrantes
+| * e386500 docs: Eliminacion de emoji innecesario
+| * 8f9c157 docs: Correcion del readme
+* | 4279236 fix: Mejora en los logs
+|/
+* 7f32d42 (origin/feat/canal-teams, feat/canal-teams) feat: Creacion Bot funcional...
+*   8cbaba2 Merge pull request #1 from Ikeracevedo/feat/esqueleto-hexagonal
+```
+
+**Ambas ramas de trabajo (`feat/esqueleto-hexagonal` y `feat/canal-teams`) están mergeadas a
+`main`**, y `main` local está sincronizado con `origin/main`. Esto satisface la parte de "PR
+mergeado a main" del Definition of Done para las HUs de código que quedaron con ese único punto
+pendiente — sigue sin confirmarse si hay **CI** configurado (no se preguntó de nuevo en esta
+sesión; queda para la próxima vez que se revise el tablero).
+
+**El fix de logging ya está aplicado — verificado leyendo `app/main.py` en disco, no asumido por
+el mensaje del commit:**
+```python
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+```
+Exactamente la recomendación de la sesión de mentoría anterior (INFO estructurado, no DEBUG
+global). **Ítem pendiente cerrado.**
+
+**Decisiones de cierre de Iker para esta sesión:**
+- Las 2 capturas que faltan (instalación de la app, mensaje fuera de alcance) **se posponen a
+  propósito** — el bot ya está confirmado funcional, no es urgente. Quedan como el único pendiente
+  visible de OT-02A/F4.4.
+- **No se recrean las listas "Doing" y "QA/Review" en Trello.** El tablero se queda con las 3
+  listas actuales (Backlog, To do, Done). Las HUs a medias que se identificaron en la auditoría
+  (HU-04.1, HU-04.3, HU-07.1, HU-07.6, HU-07.7, HU-07.8) se quedan en Backlog/To do hasta que
+  cumplan sus propios criterios de aceptación completos — no se fuerza un estado intermedio en el
+  tablero solo por tenerlo.
+
+**⚠️ Bloqueador conocido de esta sesión:** el bridge de archivos con la máquina de Iker
+(`device_bash`) está caído por una actualización de Windows del 8-sep-2026 — problema reportado y
+en seguimiento, no achacable al proyecto. `device_list_dir` / `device_stage_files` /
+`device_commit_files` siguen funcionando (leer y escribir archivos sigue posible); lo que no
+funciona es correr comandos de shell directamente en la máquina de Iker desde el chat. Mientras
+dure, cualquier verificación que antes se hacía con un comando se hace pidiéndole a Iker que lo
+corra él y pegue el resultado.
 
 ---
 
@@ -1342,11 +1616,14 @@ Brechas detectadas. **Repasar antes de la sustentación.**
 | R4 | SDK de bot de Teams para Python inmaduro | 🟢 **CERRADO 2-sep.** `microsoft-teams-apps 2.0.16` es GA y corre sobre FastAPI. Riesgo residual: rotación de SDKs y poca documentación de terceros |
 | R8 | **Entregables E2/E3/E4 del curso sin verificar** | 🔴 **Nuevo. Abierto por decisión del tech lead** |
 | R9 | **Ventana real de 8 semanas, no 14** | 🔴 **Nuevo. Mitigado con recorte del RAG** |
-| R10 | **Rúbrica exige responsive Desk+Mobile; el bot no lo cumple literalmente** | 🟠 **Nuevo. ADR-009, disparador 30-sep** |
+| R10 | **Rúbrica exige responsive Desk+Mobile; el bot no lo cumple literalmente** | 🟡 **DEGRADADO (13-sep).** El tech lead reporta que se le explicó al docente la forma de trabajo y no hay problema. **Salvedad: acuerdo verbal, no escrito.** Mitigación recomendada: captura de `semana` en Teams **móvil** (OT-04 F6) + confirmación por correo. Disparador del 30-sep sigue vigente |
 | R11 | **Tenant vence el 15-sep** | 🟡 **DEGRADADO de 🔴 a 🟡 (8-sep).** Decisión del tech lead: **no se paga; el tenant se reconstruye.** Con `RUNBOOK-TENANT.md` escrito, un tenant caído deja de ser un riesgo de proyecto y pasa a ser ~2 h de trabajo + 24 h de propagación. **Residual:** los pasos P6–P8 (bot, túnel, paquete) siguen sin ejecutarse ni documentarse; hasta OT-03A el runbook está incompleto en su tercio final |
 | R12 | **Spike de Teams se conserva más allá de lo previsto** (decisión del tech lead, para demos a la profesora) | 🟡 **Nuevo (8-sep).** Revisar antes de la entrega final — el repo no debería llegar a sustentación con un spike desechable adentro |
 | R13 | **El SDK de Teams no publica tipos (`py.typed` ni stubs)** | 🟡 **Nuevo (8-sep).** Verificado en `microsoft-teams-apps 2.0.16`. Bajo `mypy --strict` produce 7 errores. Mitigado con excepción acotada a `app.bot.bot_teams`. **El tamaño de esa excepción es la métrica de si la Capa de Bot Delgada sigue siendo delgada** |
 | R14 | **Datos de configuración mal copiados: bugs silenciosos de latencia larga** | 🟢 **Nuevo (8-sep).** Detectado en `AZURE_TENANT_ID` (35 caracteres en vez de 36). Habría explotado en OT-05 con un error opaco. Se cierra con validación de formato GUID en `Configuracion` (OT-03A, Fase 1) |
 | R15 | **Los usuarios finales no pueden consentir apps multiinquilino sin *verified publisher*** | 🟠 **Abierto (8-sep).** Afecta al modelo ISV (ADR-003). Requiere alta en Microsoft Partner Network. Documentado con honestidad en `GUIA-INSTALACION-TI.md` §7: se le dice al admin antes de que lo descubra en la pantalla de aprobación. **No bloquea el desarrollo en tenant propio** |
-| R16 | **El manifiesto de Teams conserva la identidad del scaffold** (`My App, Inc.`, `example.com` en privacy y términos de uso) | 🟠 **Nuevo (8-sep).** Teams **exige** URLs válidas de privacidad y términos para publicar. Y es lo primero que mira un admin de TI para decidir si una app es legítima. Se cierra en OT-03A P8 |
+| R16 | **El manifiesto de Teams conserva la identidad del scaffold** (`My App, Inc.`, `example.com`) | 🟠 **Abierto (verificado el 13-sep: sigue así).** Teams **exige** URLs válidas de privacidad y términos para publicar. Se cierra en **OT-04 F0.2** |
+| R18 | **Reglas de agente contradiciendo los ADR del proyecto** | 🟢 **CERRADO 13-sep.** Los 5 archivos de `.agents/rules/` reescritos para este repositorio. **Regla adoptada: las reglas de un agente son configuración de producción; si contradicen el repo, el agente no se equivoca, obedece** |
+| R19 | **Sin CI** — el Definition of Done del propio tablero lo exige | 🟠 **Nuevo (13-sep).** `ruff` ha quedado en rojo al entregar **dos OT seguidas**, porque la compuerta depende de que alguien se acuerde. Se cierra en OT-04 F7.1 |
+| R20 | **Paquetes del equipo sin avance desde el 23-ago** (golden dataset de Antonio, ingesta de Julián) | 🟠 **Nuevo (13-sep).** El golden dataset es la respuesta a la pregunta 3 de sustentación. Sin él no hay métrica de calidad |
 | R17 | **`scripts/seed_tenant.py` necesitará permisos de escritura que Brújula no debe tener** | 🟡 **Nuevo (8-sep).** Mitigación decidida: **registro de app separado y de un solo inquilino** (`brujula-seed`), nunca distribuido. Añadir `ReadWrite` a la app de Brújula destruiría su argumento comercial ante un admin de TI |
