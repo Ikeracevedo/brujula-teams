@@ -4,10 +4,10 @@
     "version": "1.0.0",
     "id": "a3f7c9e2-8b41-4d6a-9e3f-1c5b7d2a6f04",
     "developer": {
-        "name": "My App, Inc.",
-        "websiteUrl": "https://www.example.com",
-        "privacyUrl": "https://www.example.com/privacy",
-        "termsOfUseUrl": "https://www.example.com/termofuse"
+        "name": "Proyecto en TIC 1, UPB",
+        "websiteUrl": "https://github.com/Ikeracevedo/brujula-teams",
+        "privacyUrl": "https://github.com/Ikeracevedo/brujula-teams/blob/main/docs/PRIVACIDAD.md",
+        "termsOfUseUrl": "https://github.com/Ikeracevedo/brujula-teams/blob/main/docs/TERMINOS.md"
     },
     "icons": {
         "color": "color.png",
@@ -25,7 +25,7 @@
     "supportsChannelFeatures": "tier1",
     "bots": [
         {
-            "botId": "71243d99-4ea3-43ab-8f0f-18fea2cf950b",
+            "botId": "7fa7241b-4ba3-4e33-b6f8-c05c74037173",
             "scopes": [
                 "personal",
                 "team",

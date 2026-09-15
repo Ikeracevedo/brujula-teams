@@ -221,3 +221,12 @@ __marimo__/
 # scaffolding de proceso. El estado durable del proyecto vive en BITACORA.md
 # y PLAN-COMPLETO.md, no aqui.
 docs/OT-*.md
+
+#Configuracion de entorno de trabajo
+.agents
+CLAUDE.md
+GEMINI.md
+
+# Paquetes de Teams generados (build artifact, se regenera desde manifest.json + iconos)
+teams/appPackage/*.zip
+teams/appPackage/debug.log

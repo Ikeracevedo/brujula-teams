@@ -5,6 +5,7 @@ Composition root del proyecto.
 from __future__ import annotations
 
 import contextlib
+import logging
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
@@ -13,12 +14,12 @@ from app.api.dependencias import obtener_servicio_agenda
 from app.api.rutas import VERSION, router
 from app.bot.bot_teams import crear_bot_teams
 from app.config import obtener_configuracion
-import logging
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
+
 
 def crear_app() -> FastAPI:
     config = obtener_configuracion()
