@@ -10,7 +10,6 @@ from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
 
-from app.api.dependencias import obtener_servicio_agenda
 from app.api.rutas import VERSION, router
 from app.bot.bot_teams import crear_bot_teams
 from app.config import obtener_configuracion
@@ -23,7 +22,6 @@ logging.basicConfig(
 
 def crear_app() -> FastAPI:
     config = obtener_configuracion()
-    servicio = obtener_servicio_agenda()
 
     @contextlib.asynccontextmanager
     async def ciclo_de_vida(app: FastAPI) -> AsyncIterator[None]:
@@ -39,7 +37,7 @@ def crear_app() -> FastAPI:
         lifespan=ciclo_de_vida,
     )
     nucleo.include_router(router)
-    nucleo.state.bot_teams = crear_bot_teams(nucleo, servicio, config)
+    nucleo.state.bot_teams = crear_bot_teams(nucleo, config)
 
     return nucleo
 
