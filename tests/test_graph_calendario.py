@@ -82,7 +82,7 @@ async def test_traduce_un_evento_a_pendiente() -> None:
 async def test_pide_la_ventana_correcta_a_graph() -> None:
     g = _GraphFalso([])
     await FuenteCalendarioGraph(g).obtener_pendientes(AHORA, LUEGO)
-    
+
     # Extraer las propiedades del objeto RequestConfiguration y luego query_parameters
     query_params = g.ultima_config.query_parameters
     assert query_params.start_date_time == AHORA.isoformat()
