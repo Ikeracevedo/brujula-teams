@@ -25,3 +25,18 @@ class FuenteNoDisponibleError(BrujulaError):
 
 class ConfiguracionInvalidaError(BrujulaError):
     """Falta una variable de entorno obligatoria o tiene un valor imposible."""
+
+
+class FuenteSinPermisoError(FuenteNoDisponibleError):
+    """El usuario no ha autorizado (o revoco) el permiso para esta fuente.
+
+    Es un subtipo de FuenteNoDisponibleError a proposito: el servicio ya
+    sabe tratarlo sin cambiar una linea. Pero se distingue porque tiene
+    una ACCION asociada distinta: un 403 por permisos se arregla
+    iniciando sesion; un 500 de Graph, no. La tarjeta puede ofrecer
+    "Conectar mi cuenta" solo cuando el fallo es de este tipo.
+    """
+
+    def __init__(self, nombre_fuente: str, permiso_requerido: str) -> None:
+        self.permiso_requerido = permiso_requerido
+        super().__init__(nombre_fuente, f"falta el permiso '{permiso_requerido}'")

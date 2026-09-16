@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 
 from app.dominio.agenda import Agenda, FuenteFallida
-from app.dominio.errores import FuenteNoDisponibleError
+from app.dominio.errores import FuenteNoDisponibleError, FuenteSinPermisoError
 from app.dominio.pendiente import Pendiente
 from app.puertos.task_source import TaskSource
 
@@ -47,7 +47,13 @@ class ServicioAgenda:
         for fuente, resultado in zip(self._fuentes, resultados, strict=True):
             if isinstance(resultado, FuenteNoDisponibleError):
                 # Fallo previsto (permisos, red): se reporta al usuario.
-                fallidas.append(FuenteFallida(fuente.nombre, resultado.motivo))
+                fallidas.append(
+                    FuenteFallida(
+                        fuente.nombre,
+                        resultado.motivo,
+                        requiere_autorizacion=isinstance(resultado, FuenteSinPermisoError),
+                    )
+                )
             elif isinstance(resultado, BaseException):
                 # Cualquier otra excepcion es un BUG propio, no una fuente
                 # caida. Si se atrapara igual que la de arriba, cada bug
