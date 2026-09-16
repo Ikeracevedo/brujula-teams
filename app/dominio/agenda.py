@@ -13,6 +13,10 @@ class FuenteFallida:
 
     nombre: str
     motivo: str
+    # La accion que le toca al usuario, no un detalle tecnico: True cuando
+    # el fallo es por falta de autorizacion (arreglable con "conectar"),
+    # False cuando es un fallo tecnico de la fuente (Graph caido, etc).
+    requiere_autorizacion: bool = False
 
 
 @dataclass(frozen=True, slots=True)

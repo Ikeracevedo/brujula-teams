@@ -79,28 +79,40 @@ def _aviso_fuentes_fallidas(agenda: Agenda) -> Container:
     Brujula estaria mintiendo por omision.
     """
     nombres = ", ".join(f.nombre for f in agenda.fuentes_fallidas)
-    return Container(
-        items=[
-            TextBlock(
-                text=f"⚠ No pude consultar: {nombres}",
-                weight="Bolder",
-                wrap=True,
-                color="Attention",
+    por_autorizar = [f.nombre for f in agenda.fuentes_fallidas if f.requiere_autorizacion]
+
+    items: list[object] = [
+        TextBlock(
+            text=f"⚠ No pude consultar: {nombres}",
+            weight="Bolder",
+            wrap=True,
+            color="Attention",
+        ),
+        TextBlock(
+            text=(
+                "Esta lista está incompleta. No significa que no tengas pendientes ahí: "
+                "significa que no pude preguntar."
             ),
+            wrap=True,
+            size="Small",
+            is_subtle=True,
+        ),
+    ]
+
+    if por_autorizar:
+        items.append(
             TextBlock(
                 text=(
-                    "Esta lista está incompleta. No significa que no tengas pendientes ahí: "
-                    "significa que no pude preguntar."
+                    f"Falta tu autorización para {', '.join(por_autorizar)}. "
+                    "Escribe **conectar** para darla."
                 ),
                 wrap=True,
                 size="Small",
-                is_subtle=True,
-            ),
-        ],
-        style="attention",
-        show_border=True,
-        spacing="Medium",
-    )
+                color="Warning",
+            )
+        )
+
+    return Container(items=items, style="attention", show_border=True, spacing="Medium")
 
 
 def _encabezado(agenda: Agenda) -> list[object]:

@@ -29,6 +29,7 @@ class Configuracion(BaseSettings):
     # Distintas del registro de Entra ID para Graph: son dos identidades.
     teams_bot_id: str = ""
     teams_bot_password: str = ""
+    teams_oauth_connection: str = "graph"
 
     gemini_api_key: str = ""
     mongodb_uri: str = ""

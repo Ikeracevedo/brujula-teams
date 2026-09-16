@@ -137,3 +137,29 @@ def test_las_fechas_se_muestran_en_relativo() -> None:
     assert "(hoy)" in t
     assert "(mañana)" in t
     assert "en 4 días" in t
+
+
+def test_si_falta_autorizacion_la_tarjeta_dice_como_arreglarlo() -> None:
+    agenda = Agenda(
+        pendientes=(),
+        fuentes_consultadas=(),
+        fuentes_fallidas=(
+            FuenteFallida("calendario", "falta el permiso", requiere_autorizacion=True),
+        ),
+    )
+    t = _texto(tarjeta_agenda(agenda, AHORA))
+    assert "Falta tu autorización" in t
+    assert "calendario" in t
+    assert "conectar" in t
+
+
+def test_un_fallo_tecnico_NO_pide_conectar_la_cuenta() -> None:
+    """Distinguir importa: ofrecerle 'conectar tu cuenta' a alguien cuyo
+    problema es un 500 de Graph lo manda a dar vueltas sin arreglar nada."""
+    agenda = Agenda(
+        pendientes=(),
+        fuentes_consultadas=(),
+        fuentes_fallidas=(FuenteFallida("calendario", "Graph respondio 500"),),
+    )
+    t = _texto(tarjeta_agenda(agenda, AHORA))
+    assert "Falta tu autorización" not in t
