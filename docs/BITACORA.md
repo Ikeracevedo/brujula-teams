@@ -3,22 +3,38 @@
 > Registro vivo. Se actualiza al cerrar cada Orden de Trabajo.
 > Leer junto con `PLAN-MAESTRO.md` al inicio de cada chat.
 
-**Estado actual:** **F1 — Plomería de Teams + esqueleto** (2–16 sep)
-**OT activa:** **OT-03A** — El canal de Teams sobre el núcleo real (`docs/OT-03A.md`), redactada
-y verificada, lista para ejecutar
+**Estado actual:** **F3 — Graph delegado** (30 sep–14 oct)
+**OT activa:** **OT-05** — Planner y To Do (Pendiente)
+**OT-04 y OT-04B:** ✅ CERRADAS (16-sep-2026). Datos reales y despliegue en Azure VM exitosos.
+**OT-03A:** ✅ CERRADA (13-sep-2026)
 **OT-02B:** ✅ CERRADA (8-sep-2026), auditada ejecutando la suite. PR #1 mergeada
-**OT-02A:** 98% — bot vivo respondiendo en Teams contra el código permanente (`app/main.py`, no el
-spike). **F4.5 (Graph) ya cerrada** (13-sep): 403, `ChannelMessage.Read.All`, decisión de RSC
-registrada. Solo faltan 2 de las 4 capturas de F4.4 (instalación de la app y un mensaje fuera de
-alcance — ya están `ayuda` y `semana`). ⚠️ Debe cerrarse **antes del 15-sep** (vencimiento del
-tenant, R11)
+**OT-02A:** 98% — bot vivo respondiendo en Teams contra el código permanente (`app/main.py`, no el spike).
 **OT-01:** ✅ CERRADA (23-ago-2026)
 **Repositorio:** `brujula-teams` (público) — `github.com/Ikeracevedo/brujula-teams`
 **Nombre del proyecto:** **Brújula**
 **⏰ ENTREGA FINAL: 28 DE OCTUBRE DE 2026.** Checkpoints: 16 sep · 30 sep · 14 oct · 28 oct
 **Documentos vivos:** `PLAN-COMPLETO.md` · `BITACORA.md` · `RUNBOOK-TENANT.md` · `GUIA-INSTALACION-TI.md` (borrador) · `GUIA-OPERACION.md`
-**Última actualización:** 13 de septiembre de 2026 (noche — auditoría de OT-03A, runbook completado,
-reglas de agente reescritas, tablero fechado; reconstrucción del tenant prevista para el 14-sep)
+**Última actualización:** 16 de septiembre de 2026 (Cierre OT-04 y OT-04B, inicio de Planner y To Do).
+
+---
+
+## Sesión del 16-sep-2026 — Cierre de OT-04 (Autenticación Delegada) y despliegue OT-04B
+
+### Auditoría de OT-04: ✅ CERRADA
+La autenticación delegada de OAuth con Teams y Microsoft Graph se completó con éxito.
+- El manifiesto fue corregido (`token.botframework.com` añadido a `validDomains`) permitiendo el flujo de login nativo sin el error genérico "App does not exist".
+- El comando `conectar` despliega correctamente el inicio de sesión.
+- El comando `semana` devuelve los eventos reales del calendario del usuario.
+- El error de `Graph API` al pasar un diccionario en lugar del objeto `RequestConfiguration` requerido por Kiota SDK fue detectado gracias a un `logger.exception` temporal. Fue corregido y probado con éxito.
+- **Triunfo arquitectónico comprobado:** Cuando Graph falló por el error de parámetros, la aplicación *no se cayó* con un HTTP 500. El adaptador cumplió su contrato devolviendo un `FuenteNoDisponibleError`, y la capa de servicios respondió grácilmente indicando "No pude consultar: calendario" y mostrando 0 eventos. ¡La arquitectura hexagonal protegió al usuario final del crash!
+- El test de `graph_calendario` fue actualizado para reflejar la aserción sobre `RequestConfiguration`.
+- `ruff` previno exitosamente un commit sucio (espacios en blanco en línea vacía) gracias al pipeline de CI, validando la importancia de la Fase 7.1.
+
+### OT-04B: Despliegue en Azure VM — ✅ CERRADA
+- El backend corre en un contenedor Docker (`ghcr.io/ikeracevedo/brujula-teams:latest`) en una Azure VM (Ubuntu, `Standard_B2s_v2`, `mexicocentral`).
+- El tráfico HTTPS es gestionado por DuckDNS y Caddy.
+- El pipeline de GitHub Actions despliega automáticamente tras cada push a `main`.
+- **Lección operativa clave:** `docker compose up -d` no recrea un contenedor automáticamente cuando el archivo `.env` cambia en el host sin que lo sepas. Se debió ejecutar manualmente para inyectar el nuevo `TEAMS_BOT_ID` (el Single Tenant validado en 15-sep) en memoria del contenedor, resolviendo el error `Audience doesn't match` y un `401 Unauthorized` desde Bot Framework.
 
 ---
 
