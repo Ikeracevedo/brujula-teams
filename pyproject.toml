@@ -18,6 +18,15 @@ files = ["app", "tests"]
 module = "microsoft_teams.*"
 ignore_missing_imports = true
 
+# `microsoft_teams.api` reexporta sus modelos desde submodulos de una forma
+# que mypy no resuelve (los ve como atributos inexistentes). Es un defecto de
+# empaquetado del SDK, no del codigo: en tiempo de ejecucion los imports
+# funcionan. Se silencia SOLO ese codigo de error, y SOLO en el modulo que
+# toca el SDK. No se desactiva `attr-defined` en ningun otro sitio.
+[[tool.mypy.overrides]]
+module = "app.bot.bot_teams"
+disable_error_code = ["attr-defined"]
+
 [[tool.mypy.overrides]]
 module = "app.bot.bot_teams"
 disallow_untyped_decorators = false

@@ -20,9 +20,13 @@ from __future__ import annotations
 from typing import Any
 
 from app.adaptadores.fuente_ejemplo import FuenteEjemplo
+from app.adaptadores.gemini_provider import GeminiProvider
 from app.adaptadores.graph_calendario import FuenteCalendarioGraph
+from app.config import Configuracion
+from app.puertos.llm_provider import LLMProvider
 from app.puertos.task_source import TaskSource
 from app.servicios.servicio_agenda import ServicioAgenda
+from app.servicios.servicio_conversacion import ServicioConversacion
 
 
 def servicio_de_ejemplo() -> ServicioAgenda:
@@ -39,3 +43,18 @@ def servicio_para_usuario(cliente_graph: Any) -> ServicioAgenda:
     """
     fuentes: list[TaskSource] = [FuenteCalendarioGraph(cliente_graph)]
     return ServicioAgenda(fuentes)
+
+
+def proveedor_llm(config: Configuracion) -> LLMProvider:
+    """El proveedor de LLM del sistema.
+
+    Cambiar Gemini por Ollama o por OpenAI es cambiar ESTA linea: el resto
+    del sistema habla con el puerto. Es la promesa del ADR-006, en un sitio
+    donde se puede comprobar con un `git diff`.
+    """
+    return GeminiProvider(config)
+
+
+def servicio_conversacion(config: Configuracion) -> ServicioConversacion:
+    """El caso de uso de conversacion, con su proveedor ya inyectado."""
+    return ServicioConversacion(proveedor_llm(config))

@@ -32,6 +32,9 @@ class Configuracion(BaseSettings):
     teams_oauth_connection: str = "graph"
 
     gemini_api_key: str = ""
+    # El modelo sale de configuracion, no del codigo: cambiarlo es
+    # exactamente lo que el ADR-006 queria que costara una variable.
+    gemini_modelo: str = "gemini-2.5-flash"
     mongodb_uri: str = ""
 
     @field_validator("azure_tenant_id", "azure_client_id", "teams_bot_id")
