@@ -40,3 +40,17 @@ class FuenteSinPermisoError(FuenteNoDisponibleError):
     def __init__(self, nombre_fuente: str, permiso_requerido: str) -> None:
         self.permiso_requerido = permiso_requerido
         super().__init__(nombre_fuente, f"falta el permiso '{permiso_requerido}'")
+
+
+class LLMNoDisponibleError(BrujulaError):
+    """El proveedor de modelo de lenguaje no pudo responder.
+
+    Mismo principio que FuenteNoDisponibleError: un fallo del LLM NO se
+    traduce en una respuesta inventada ni en silencio. Se declara, y la
+    capa de arriba decide que decirle al usuario.
+    """
+
+    def __init__(self, proveedor: str, motivo: str) -> None:
+        self.proveedor = proveedor
+        self.motivo = motivo
+        super().__init__(f"El proveedor '{proveedor}' no pudo responder: {motivo}")
