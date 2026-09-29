@@ -230,3 +230,9 @@ GEMINI.md
 # Paquetes de Teams generados (build artifact, se regenera desde manifest.json + iconos)
 teams/appPackage/*.zip
 teams/appPackage/debug.log
+
+# Venv de verificacion en sala limpia (verificar-ci.ps1 lo recrea en cada corrida)
+.venv-limpio/
+
+# Configuracion local de Claude Code
+.claude/
