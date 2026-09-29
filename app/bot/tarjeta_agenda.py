@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from microsoft_teams.cards import (
     ActionSet,
     AdaptiveCard,
+    CardElement,
     Container,
     Fact,
     FactSet,
@@ -14,6 +16,12 @@ from microsoft_teams.cards import (
 
 from app.dominio.agenda import Agenda
 from app.dominio.pendiente import FuentePendiente, Pendiente
+
+# El SDK tipa `color` y `style` como Literal cerrados. Anotarlos asi en vez
+# de `str` es lo que permite que mypy verifique que no se cuela un valor
+# invalido: un "Verde" en vez de "Good" fallaria aqui y no en pantalla.
+ColorTexto = Literal["Default", "Dark", "Light", "Accent", "Good", "Warning", "Attention"]
+EstiloContenedor = Literal["default", "emphasis", "accent", "good", "attention", "warning"]
 
 _ETIQUETA_FUENTE: dict[FuentePendiente, str] = {
     FuentePendiente.PLANNER: "Planner",
@@ -40,6 +48,8 @@ def _bloque_pendiente(p: Pendiente, ahora: datetime) -> Container:
         Fact(title="Vence", value=_texto_fecha(p.vence, ahora)),
     ]
 
+    color: ColorTexto
+    estilo: EstiloContenedor
     if p.es_inferido:
         hechos.append(Fact(title="Confianza", value=f"{int(p.confianza * 100)}% — inferido"))
         color, estilo = "Warning", "warning"
@@ -47,7 +57,7 @@ def _bloque_pendiente(p: Pendiente, ahora: datetime) -> Container:
         hechos.append(Fact(title="Confianza", value="Confirmado (dato estructurado)"))
         color, estilo = "Good", "good"
 
-    items: list[object] = [
+    items: list[CardElement] = [
         TextBlock(text=p.titulo, weight="Bolder", size="Medium", wrap=True, color=color),
         FactSet(facts=hechos),
     ]
@@ -81,7 +91,7 @@ def _aviso_fuentes_fallidas(agenda: Agenda) -> Container:
     nombres = ", ".join(f.nombre for f in agenda.fuentes_fallidas)
     por_autorizar = [f.nombre for f in agenda.fuentes_fallidas if f.requiere_autorizacion]
 
-    items: list[object] = [
+    items: list[CardElement] = [
         TextBlock(
             text=f"⚠ No pude consultar: {nombres}",
             weight="Bolder",
@@ -115,7 +125,7 @@ def _aviso_fuentes_fallidas(agenda: Agenda) -> Container:
     return Container(items=items, style="attention", show_border=True, spacing="Medium")
 
 
-def _encabezado(agenda: Agenda) -> list[object]:
+def _encabezado(agenda: Agenda) -> list[CardElement]:
     confirmados = sum(1 for p in agenda.pendientes if not p.es_inferido)
     inferidos = agenda.total - confirmados
     return [
@@ -139,7 +149,7 @@ def tarjeta_agenda(agenda: Agenda, ahora: datetime) -> AdaptiveCard:
     motivo que en ServicioAgenda: una funcion que consulta el reloj del
     sistema no se puede testear de forma determinista.
     """
-    cuerpo: list[object] = _encabezado(agenda)
+    cuerpo: list[CardElement] = _encabezado(agenda)
 
     if not agenda.esta_completa:
         cuerpo.append(_aviso_fuentes_fallidas(agenda))
