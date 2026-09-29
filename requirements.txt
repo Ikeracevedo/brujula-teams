@@ -1,5 +1,13 @@
 fastapi==0.118.0
 uvicorn[standard]==0.37.0
-pydantic==2.11.9
+
+# 2.12.5 es el MINIMO que exige google-genai 2.23.0. No es un capricho:
+# con 2.11.9 el `pip install` falla entero con ResolutionImpossible.
+# Se descubrio en una instalacion limpia, no en el venv reusado (ver OT-05 F6).
+pydantic==2.12.5
 pydantic-settings==2.11.0
 microsoft-teams-apps[graph]==2.0.16
+
+# Proveedor de LLM detras del puerto LLMProvider (ADR-006).
+# Integrado a partir del trabajo de Julian Gomez (rama feature/gemini).
+google-genai==2.23.0
