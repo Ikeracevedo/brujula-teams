@@ -16,9 +16,10 @@ from microsoft_teams.apps import ActivityContext, App
 from microsoft_teams.apps.http.fastapi_adapter import FastAPIAdapter
 
 from app.bot.tarjeta_agenda import tarjeta_agenda
-from app.composicion import servicio_para_usuario
+from app.composicion import servicio_conversacion, servicio_para_usuario
 from app.config import Configuracion
 from app.servicios.servicio_agenda import ServicioAgenda
+from app.servicios.servicio_conversacion import ServicioConversacion
 
 PATRON_AGENDA = re.compile(r"\b(semana|pendientes|qu[eé]\s+tengo|agenda)\b", re.IGNORECASE)
 PATRON_AYUDA = re.compile(r"^\s*(hola|ayuda|help|men[uú]|\?)\s*$", re.IGNORECASE)
@@ -35,13 +36,11 @@ AYUDA = (
     "- **`desconectar`** — revoca esa autorización\n"
     "- **`estado`** — si tus datos son reales o de ejemplo, ahora mismo\n"
     "- **`ayuda`** — este mensaje\n\n"
+    "_También puedes preguntarme en lenguaje natural **sobre tus pendientes** "
+    "(«¿qué es lo más urgente?», «¿tengo algo el viernes?»). "
+    "Fuera de eso no respondo: no soy un asistente de propósito general._\n\n"
     "_Cada pendiente trae enlace a su origen. Los que Brújula infirió de una "
     "conversación salen marcados en amarillo con su nivel de confianza._"
-)
-
-FUERA_DE_ALCANCE = (
-    "Brújula solo responde sobre tus pendientes. Escribe **`semana`** para ver "
-    "los de los próximos 7 días, o **`ayuda`** para ver qué sé hacer."
 )
 
 NECESITO_PERMISO = (
@@ -62,6 +61,22 @@ async def construir_respuesta_agenda(
     """
     agenda = await servicio.pendientes_de_la_semana(ahora)
     return MessageActivityInput().add_card(tarjeta_agenda(agenda, ahora))
+
+
+async def construir_respuesta_libre(
+    conversacion: ServicioConversacion,
+    servicio: ServicioAgenda,
+    pregunta: str,
+    ahora: datetime,
+) -> str:
+    """Responde una pregunta libre ACOTADA a la agenda del usuario.
+
+    Vive fuera del handler por el mismo motivo que `construir_respuesta_agenda`:
+    lo que queda dentro de un handler solo se prueba con Teams conectado.
+    """
+    agenda = await servicio.pendientes_de_la_semana(ahora)
+    respuesta = await conversacion.responder(pregunta, agenda, ahora)
+    return respuesta.texto
 
 
 def crear_bot_teams(
@@ -85,6 +100,10 @@ def crear_bot_teams(
         dangerously_allow_unauthenticated_requests=not config.teams_bot_id,
         default_connection_name=config.teams_oauth_connection,
     )
+
+    # El servicio de conversacion SI se puede construir una vez: no lleva
+    # token de nadie. El de agenda NO, y por eso se crea por peticion.
+    conversacion = servicio_conversacion(config)
 
     @bot.on_message_pattern(PATRON_AGENDA)
     async def responder_agenda(ctx: ActivityContext[MessageActivity]) -> None:
@@ -130,8 +149,28 @@ def crear_bot_teams(
         await ctx.send(AYUDA)
 
     @bot.on_message
-    async def fuera_de_alcance(ctx: ActivityContext[MessageActivity]) -> None:
-        """El plan dice: 'si preguntan por recetas de cocina, no responde'."""
-        await ctx.send(FUERA_DE_ALCANCE)
+    async def pregunta_libre(ctx: ActivityContext[MessageActivity]) -> None:
+        """Pregunta en lenguaje natural SOBRE LOS PENDIENTES del usuario.
+
+        El handler no decide el alcance: se lo pregunta a
+        `ServicioConversacion`, que solo le entrega al modelo la agenda de
+        esta persona. Si la pregunta no va de pendientes, el servicio
+        declina — y eso se puede testear sin Teams y sin gastar cuota.
+        """
+        if not ctx.is_signed_in:
+            # Sin sesion no hay agenda, y sin agenda no hay nada sobre lo
+            # que responder. No se inventa ni se responde de cultura general.
+            await ctx.send(NECESITO_PERMISO)
+            await ctx.sign_in()
+            return
+
+        await ctx.reply(TypingActivityInput())
+        texto = await construir_respuesta_libre(
+            conversacion,
+            servicio_para_usuario(ctx.user_graph),
+            ctx.activity.text or "",
+            datetime.now(UTC),
+        )
+        await ctx.send(texto)
 
     return bot
