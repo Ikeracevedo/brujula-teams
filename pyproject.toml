@@ -17,6 +17,37 @@ files = ["app", "tests"]
 [[tool.mypy.overrides]]
 module = "microsoft_teams.*"
 ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "msgraph.*"
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "kiota_abstractions.*"
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "kiota_authentication_azure.*"
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "azure.*"
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "pymongo.*"
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "google.*"
+ignore_missing_imports = true
+follow_imports = "skip"
 
 # `microsoft_teams.api` reexporta sus modelos desde submodulos de una forma
 # que mypy no resuelve (los ve como atributos inexistentes). Es un defecto de

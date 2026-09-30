@@ -22,11 +22,15 @@ from typing import Any
 from app.adaptadores.fuente_ejemplo import FuenteEjemplo
 from app.adaptadores.gemini_provider import GeminiProvider
 from app.adaptadores.graph_calendario import FuenteCalendarioGraph
+from app.adaptadores.graph_planner import FuentePlannerGraph
+from app.adaptadores.graph_todo import FuenteToDoGraph
+from app.adaptadores.mongo_pendientes import FuentePropiaMongo
 from app.config import Configuracion
 from app.puertos.llm_provider import LLMProvider
 from app.puertos.task_source import TaskSource
 from app.servicios.servicio_agenda import ServicioAgenda
 from app.servicios.servicio_conversacion import ServicioConversacion
+from app.servicios.servicio_pendientes_propios import ServicioPendientesPropios
 
 
 def servicio_de_ejemplo() -> ServicioAgenda:
@@ -35,14 +39,38 @@ def servicio_de_ejemplo() -> ServicioAgenda:
     return ServicioAgenda(fuentes)
 
 
-def servicio_para_usuario(cliente_graph: Any) -> ServicioAgenda:
-    """Modo real: las fuentes de ESTE usuario, con SU cliente de Graph.
+def servicio_para_usuario(
+    cliente_graph: Any,
+    usuario_id: str,
+    config: Configuracion,
+) -> ServicioAgenda:
+    """Modo real: las cuatro fuentes de ESTE usuario, con SU cliente de Graph.
 
-    En OT-05 esta lista crece con Planner y To Do. El resto del sistema
-    no se entera: es una linea mas aqui.
+    El diff entre OT-04 (1 fuente) y OT-05 (4 fuentes) es esta funcion.
+    ServicioAgenda, Agenda y ServicioConversacion no cambiaron una linea.
+    Esa es la promesa de la arquitectura hexagonal: anadir un origen de
+    datos cuesta un archivo nuevo y dos lineas aqui.
     """
-    fuentes: list[TaskSource] = [FuenteCalendarioGraph(cliente_graph)]
+    fuente_mongo = FuentePropiaMongo(config, usuario_id)
+    fuentes: list[TaskSource] = [
+        FuenteCalendarioGraph(cliente_graph),
+        FuenteToDoGraph(cliente_graph),
+        FuentePlannerGraph(cliente_graph, config.azure_tenant_id),
+        fuente_mongo,
+    ]
     return ServicioAgenda(fuentes)
+
+
+def servicio_pendientes_propios_para_usuario(
+    config: Configuracion,
+    usuario_id: str,
+) -> ServicioPendientesPropios:
+    """Servicio de escritura para el comando 'recuerdame'.
+
+    Crea una FuentePropiaMongo independiente: el composition root ensambla,
+    no reutiliza por accidente el mismo objeto del servicio de lectura.
+    """
+    return ServicioPendientesPropios(FuentePropiaMongo(config, usuario_id))
 
 
 def proveedor_llm(config: Configuracion) -> LLMProvider:

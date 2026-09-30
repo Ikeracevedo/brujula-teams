@@ -24,10 +24,11 @@ ColorTexto = Literal["Default", "Dark", "Light", "Accent", "Good", "Warning", "A
 EstiloContenedor = Literal["default", "emphasis", "accent", "good", "attention", "warning"]
 
 _ETIQUETA_FUENTE: dict[FuentePendiente, str] = {
-    FuentePendiente.PLANNER: "Planner",
-    FuentePendiente.TODO: "To Do",
-    FuentePendiente.CALENDARIO: "Calendario",
-    FuentePendiente.MENSAJE: "Mensaje de Teams",
+    FuentePendiente.PLANNER: "📋 Planner",
+    FuentePendiente.TODO: "✅ To Do",
+    FuentePendiente.CALENDARIO: "📅 Calendario",
+    FuentePendiente.MENSAJE: "💬 Mensaje de Teams",
+    FuentePendiente.PROPIO: "✏️ Propio",
 }
 
 

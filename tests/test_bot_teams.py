@@ -10,7 +10,12 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from app.bot.bot_teams import PATRON_AGENDA, PATRON_AYUDA, construir_respuesta_agenda
+from app.bot.bot_teams import (
+    PATRON_AGENDA,
+    PATRON_AYUDA,
+    PATRON_RECUERDAME,
+    construir_respuesta_agenda,
+)
 from app.dominio.errores import FuenteNoDisponibleError
 from app.dominio.pendiente import FuentePendiente, Pendiente
 from app.servicios.servicio_agenda import ServicioAgenda
@@ -69,6 +74,13 @@ def test_no_confunde_saludos_con_peticiones_de_agenda() -> None:
     for frase in ["hola", "ayuda", "?"]:
         assert PATRON_AYUDA.match(frase)
         assert not PATRON_AGENDA.search(frase)
+
+
+def test_reconoce_recuerdame() -> None:
+    for frase in ["recuérdame comprar leche", "recuerdame entregar el informe el viernes"]:
+        assert PATRON_RECUERDAME.match(frase), f"No reconocio: {frase!r}"
+    for frase in ["semana", "ayuda", "estado"]:
+        assert not PATRON_RECUERDAME.match(frase)
 
 
 def test_no_responde_fuera_de_alcance() -> None:
