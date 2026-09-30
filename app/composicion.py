@@ -11,6 +11,10 @@ from app.config import Configuracion
 from app.puertos.llm_provider import LLMProvider
 from app.puertos.task_source import TaskSource
 from app.servicios.servicio_agenda import ServicioAgenda
+from app.adaptadores.memoria_en_proceso import MemoriaEnProceso
+from app.adaptadores.memoria_mongo import MemoriaMongo
+from app.puertos.memoria_conversacion import MemoriaConversacion
+from app.servicios.servicio_conversacion import ServicioConversacion
 
 
 def servicio_de_ejemplo() -> ServicioAgenda:
@@ -28,3 +32,16 @@ def servicio_para_usuario(cliente_graph: Any) -> ServicioAgenda:
 def proveedor_gemini(config: Configuracion) -> LLMProvider:
     """Construye el proveedor de Gemini."""
     return GeminiProvider(config)
+
+def memoria_de_conversacion(config: Configuracion) -> MemoriaConversacion:
+    """Mongo si hay URI; si no, RAM (se pierde al reiniciar)."""
+    if config.mongodb_uri:
+        return MemoriaMongo(config.mongodb_uri)
+    return MemoriaEnProceso()
+
+
+def servicio_conversacion(config: Configuracion) -> ServicioConversacion:
+    return ServicioConversacion(
+        llm=proveedor_gemini(config),
+        memoria=memoria_de_conversacion(config),
+    )

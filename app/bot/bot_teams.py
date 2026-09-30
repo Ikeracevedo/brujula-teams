@@ -1,4 +1,3 @@
-
 """Canal de Teams: adaptador PRIMARIO sobre el núcleo de Brújula.
 
 CAPA DE BOT DELGADA — regla que no se negocia:
@@ -21,7 +20,7 @@ from microsoft_teams.apps import ActivityContext, App
 from microsoft_teams.apps.http.fastapi_adapter import FastAPIAdapter
 
 from app.bot.tarjeta_agenda import tarjeta_agenda
-from app.composicion import proveedor_gemini, servicio_para_usuario
+from app.composicion import servicio_conversacion, servicio_para_usuario
 from app.config import Configuracion
 from app.servicios.servicio_agenda import ServicioAgenda
 
@@ -51,6 +50,11 @@ PATRON_ESTADO = re.compile(
     re.IGNORECASE,
 )
 
+PATRON_OLVIDAR = re.compile(
+    r"^\s*(olvidar|olvida|nuevo\s+tema|reiniciar)\s*$",
+    re.IGNORECASE,
+)
+
 
 AYUDA = (
     "**Brújula** — te ubica entre tus pendientes.\n\n"
@@ -58,9 +62,10 @@ AYUDA = (
     "- **`conectar`** — autoriza a Brújula a leer tu calendario real\n"
     "- **`desconectar`** — revoca esa autorización\n"
     "- **`estado`** — si tus datos son reales o de ejemplo, ahora mismo\n"
+    "- **`olvidar`** — borra lo que recuerdo de esta conversación\n"
     "- **`ayuda`** — este mensaje\n\n"
     "_También puedes hacer preguntas académicas y generales, "
-    "y Brújula las responderá con Gemini._"
+    "y Brújula las responderá con Gemini, recordando lo que hablaron._"
 )
 
 
@@ -101,10 +106,8 @@ def crear_bot_teams(
         default_connection_name=config.teams_oauth_connection,
     )
 
+    conversacion = servicio_conversacion(config)
 
-    gemini = proveedor_gemini(config)
-
-    
     @bot.on_message_pattern(PATRON_AGENDA)
     async def responder_agenda(
         ctx: ActivityContext[MessageActivity],
@@ -184,41 +187,36 @@ def crear_bot_teams(
 
         await ctx.send(AYUDA)
 
+    @bot.on_message_pattern(PATRON_OLVIDAR)
+    async def olvidar(
+        ctx: ActivityContext[MessageActivity],
+    ) -> None:
+        """Borra la memoria de esta conversación."""
+
+        print("HANDLER OLVIDAR EJECUTADO")
+
+        await conversacion.olvidar(ctx.activity.conversation.id)
+
+        await ctx.send("Listo, empecemos de cero.")
 
     @bot.on_message
     async def responder_con_gemini(
         ctx: ActivityContext[MessageActivity],
     ) -> None:
-        """Envía las preguntas generales a Gemini."""
-
-        print("")
-        print("=" * 60)
-        print("GEMINI HANDLER EJECUTADO")
-        print("=" * 60)
+        """Envía las preguntas generales a Gemini, con memoria por conversación."""
 
         mensaje = ctx.activity.text or ""
 
-        print(f"ENSAJE RECIBIDO: {mensaje}")
+        print(f"GEMINI HANDLER EJECUTADO. Mensaje: {mensaje}")
 
         try:
-            print("Enviando mensaje a Gemini...")
-
-            respuesta = await gemini.generar(
-                instruccion=(
-                    "Eres Brújula, un asistente académico. "
-                    "Responde de forma clara, útil y breve en español. "
-                    "Puedes responder preguntas académicas y generales. "
-                    "Si no sabes algo, dilo honestamente."
-                ),
-                contexto=mensaje,
+            respuesta = await conversacion.responder(
+                ctx.activity.conversation.id,
+                mensaje,
+                datetime.now(UTC),
             )
 
-            print(" GEMINI RESPONDIÓ")
-            print(f"RESPUESTA: {respuesta}")
-
             await ctx.send(respuesta)
-
-            print("RESPUESTA ENVIADA A TEAMS")
 
         except Exception as error:
             print("")
@@ -229,9 +227,6 @@ def crear_bot_teams(
             await ctx.send(
                 "Lo siento, tuve un problema al consultar Gemini."
             )
-
-
-
 
     return bot
 
