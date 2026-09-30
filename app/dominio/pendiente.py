@@ -22,6 +22,7 @@ class FuentePendiente(StrEnum):
     TODO = "TODO"
     CALENDARIO = "CALENDARIO"
     MENSAJE = "MENSAJE"
+    PROPIO = "PROPIO"
 
 
 @dataclass(frozen=True, slots=True)

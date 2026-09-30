@@ -16,7 +16,11 @@ from microsoft_teams.apps import ActivityContext, App
 from microsoft_teams.apps.http.fastapi_adapter import FastAPIAdapter
 
 from app.bot.tarjeta_agenda import tarjeta_agenda
-from app.composicion import servicio_conversacion, servicio_para_usuario
+from app.composicion import (
+    servicio_conversacion,
+    servicio_para_usuario,
+    servicio_pendientes_propios_para_usuario,
+)
 from app.config import Configuracion
 from app.servicios.servicio_agenda import ServicioAgenda
 from app.servicios.servicio_conversacion import ServicioConversacion
@@ -28,10 +32,12 @@ PATRON_CONECTAR = re.compile(
 )
 PATRON_DESCONECTAR = re.compile(r"^\s*(desconectar|cerrar\s+sesi[oó]n|logout)\s*$", re.IGNORECASE)
 PATRON_ESTADO = re.compile(r"^\s*(estado|status)\s*$", re.IGNORECASE)
+PATRON_RECUERDAME = re.compile(r"^\s*rec[uú][eé]rdame\b", re.IGNORECASE)
 
 AYUDA = (
     "**Brújula** — te ubica entre tus pendientes.\n\n"
     "- **`semana`** — qué tienes en los próximos 7 días\n"
+    "- **`recuérdame <texto> [el viernes]`** — anota un pendiente propio\n"
     "- **`conectar`** — autoriza a Brújula a leer tu calendario real\n"
     "- **`desconectar`** — revoca esa autorización\n"
     "- **`estado`** — si tus datos son reales o de ejemplo, ahora mismo\n"
@@ -79,6 +85,16 @@ async def construir_respuesta_libre(
     return respuesta.texto
 
 
+def _usuario_id(ctx: ActivityContext) -> str:
+    """AAD Object ID del usuario. Se prefiere sobre el ID de canal de Teams.
+
+    aad_object_id es el GUID de Entra ID (el que se usa como clave en Mongo).
+    Si no esta disponible se usa from_property.id como fallback.
+    """
+    from_prop = ctx.activity.from_property
+    return (getattr(from_prop, "aad_object_id", None) or getattr(from_prop, "id", "") or "").strip()
+
+
 def crear_bot_teams(
     nucleo: FastAPI,
     config: Configuracion,
@@ -120,7 +136,7 @@ def crear_bot_teams(
         # Servicio construido POR PETICION, con el cliente de Graph de
         # ESTE usuario. Nunca cacheado: un servicio cacheado que lleva el
         # token de alguien le serviria sus datos al siguiente que pregunte.
-        servicio_usuario = servicio_para_usuario(ctx.user_graph)
+        servicio_usuario = servicio_para_usuario(ctx.user_graph, _usuario_id(ctx), config)
         await ctx.send(await construir_respuesta_agenda(servicio_usuario, datetime.now(UTC)))
 
     @bot.on_message_pattern(PATRON_CONECTAR)
@@ -148,6 +164,28 @@ def crear_bot_teams(
     async def responder_ayuda(ctx: ActivityContext[MessageActivity]) -> None:
         await ctx.send(AYUDA)
 
+    @bot.on_message_pattern(PATRON_RECUERDAME)
+    async def recuerdame(ctx: ActivityContext[MessageActivity]) -> None:
+        """Anota un pendiente propio. Ejemplo: 'recuerdame entregar el informe el viernes'."""
+        if not ctx.is_signed_in:
+            await ctx.send(NECESITO_PERMISO)
+            await ctx.sign_in()
+            return
+
+        await ctx.reply(TypingActivityInput())
+
+        usuario = _usuario_id(ctx)
+        svc = servicio_pendientes_propios_para_usuario(config, usuario)
+        try:
+            pendiente = await svc.recordar(ctx.activity.text or "", usuario, datetime.now(UTC))
+            if pendiente.vence:
+                fecha_str = f"vence el {pendiente.vence.strftime('%d/%m/%Y')}"
+            else:
+                fecha_str = "sin fecha asignada"
+            await ctx.send(f"✅ Anotado: «{pendiente.titulo}», {fecha_str}.")
+        except ValueError as e:
+            await ctx.send(f"No entendí el pendiente: {e}")
+
     @bot.on_message
     async def pregunta_libre(ctx: ActivityContext[MessageActivity]) -> None:
         """Pregunta en lenguaje natural SOBRE LOS PENDIENTES del usuario.
@@ -167,7 +205,7 @@ def crear_bot_teams(
         await ctx.reply(TypingActivityInput())
         texto = await construir_respuesta_libre(
             conversacion,
-            servicio_para_usuario(ctx.user_graph),
+            servicio_para_usuario(ctx.user_graph, _usuario_id(ctx), config),
             ctx.activity.text or "",
             datetime.now(UTC),
         )

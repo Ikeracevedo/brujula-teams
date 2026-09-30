@@ -26,11 +26,25 @@ class TaskSource(Protocol):
         desde: datetime,
         hasta: datetime,
     ) -> list[Pendiente]:
-        """Pendientes en la ventana [desde, hasta].
+        """Pendientes vigentes, con la ventana [desde, hasta] como filtro de FECHA.
 
-        Contrato de errores
-        - sin pendientes -> lista vacia
-        - no se pudo consultar -> FuenteNoDisponibleError
+        Que entra:
+          - lo que vence dentro de la ventana
+          - lo que NO tiene fecha de vencimiento y sigue abierto
+
+        Un pendiente sin fecha no esta "fuera de la ventana": esta sin
+        fechar, que no es lo mismo. Suele ser ademas el que mas se olvida.
+        ServicioAgenda._ordenar ya los coloca al final, asi que el
+        dominio siempre conto con ellos.
+
+        Que NO entra:
+          - lo ya completado. Traducir "completado" es trabajo del
+            adaptador: Planner usa percentComplete, To Do usa status.
+            El nucleo no conoce el vocabulario de Microsoft.
+
+        Contrato de errores:
+          - sin pendientes -> lista vacia
+          - no se pudo consultar -> FuenteNoDisponibleError
 
         Nunca devolver [] para senalar un fallo.
         """
