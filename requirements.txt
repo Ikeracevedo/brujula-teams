@@ -5,3 +5,4 @@ pydantic-settings==2.11.0
 microsoft-teams-apps[graph]==2.0.16
 google-genai==2.23.0
 pymongo==4.18.2
+httpx==0.28.1

@@ -19,9 +19,11 @@ from microsoft_teams.api import (
 from microsoft_teams.apps import ActivityContext, App
 from microsoft_teams.apps.http.fastapi_adapter import FastAPIAdapter
 
+from app.bot.descarga_adjuntos import descargar_imagenes
 from app.bot.tarjeta_agenda import tarjeta_agenda
 from app.composicion import servicio_conversacion, servicio_para_usuario
 from app.config import Configuracion
+from app.dominio.adjunto import AdjuntoNoSoportadoError
 from app.servicios.servicio_agenda import ServicioAgenda
 
 
@@ -65,7 +67,8 @@ AYUDA = (
     "- **`olvidar`** — borra lo que recuerdo de esta conversación\n"
     "- **`ayuda`** — este mensaje\n\n"
     "_También puedes hacer preguntas académicas y generales, "
-    "y Brújula las responderá con Gemini, recordando lo que hablaron._"
+    "y Brújula las responderá con Gemini, recordando lo que hablaron. "
+    "Si pegas una imagen, también la puedo mirar._"
 )
 
 
@@ -203,20 +206,35 @@ def crear_bot_teams(
     async def responder_con_gemini(
         ctx: ActivityContext[MessageActivity],
     ) -> None:
-        """Envía las preguntas generales a Gemini, con memoria por conversación."""
+        """Envía las preguntas generales a Gemini, con memoria e imágenes."""
 
-        mensaje = ctx.activity.text or ""
+        mensaje = (ctx.activity.text or "").strip()
 
         print(f"GEMINI HANDLER EJECUTADO. Mensaje: {mensaje}")
 
         try:
+            adjuntos = await descargar_imagenes(
+                getattr(ctx.activity, "attachments", None) or [],
+                config,
+            )
+
+            if adjuntos:
+                print(f"IMAGENES DESCARGADAS: {len(adjuntos)}")
+
             respuesta = await conversacion.responder(
                 ctx.activity.conversation.id,
                 mensaje,
                 datetime.now(UTC),
+                adjuntos,
             )
 
             await ctx.send(respuesta)
+
+        except AdjuntoNoSoportadoError as error:
+            # Mensaje pensado para el usuario: no es un fallo del bot.
+            print(f"ADJUNTO NO SOPORTADO: {error}")
+
+            await ctx.send(str(error))
 
         except Exception as error:
             print("")
@@ -229,4 +247,3 @@ def crear_bot_teams(
             )
 
     return bot
-
