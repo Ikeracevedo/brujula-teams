@@ -4,7 +4,7 @@
 > Leer junto con `PLAN-MAESTRO.md` al inicio de cada chat.
 
 **Estado actual:** **F3 — Graph delegado** (30 sep–14 oct); preparación de F4
-**OT activa:** **Integración del aporte de Julián con OT-05**
+**OT activa:** **Validación real de OT-05 y F4 web responsive**
 **OT-04 y OT-04B:** ✅ CERRADAS (16-sep-2026). Datos reales y despliegue en Azure VM exitosos.
 **OT-03A:** ✅ CERRADA (13-sep-2026)
 **OT-02B:** ✅ CERRADA (8-sep-2026), auditada ejecutando la suite. PR #1 mergeada
@@ -14,7 +14,7 @@
 **Nombre del proyecto:** **Brújula**
 **⏰ ENTREGA FINAL: 28 DE OCTUBRE DE 2026.** Checkpoints: 16 sep · 30 sep · 14 oct · 28 oct
 **Documentos vivos:** `PLAN-COMPLETO.md` · `BITACORA.md` · `RUNBOOK-TENANT.md` · `GUIA-INSTALACION-TI.md` (borrador) · `GUIA-OPERACION.md`
-**Última actualización:** 9 de octubre de 2026 (auditoría de ramas e integración en preparación).
+**Última actualización:** 9 de octubre de 2026 (integración PR #8 desplegada y verificada).
 
 ---
 
@@ -42,6 +42,20 @@
   Azure, Atlas y el enlace de Planner/To Do sigue pendiente; los tests sin red
   no sustituyen esa prueba. La detección de pendientes desde mensajes de
   canal permanece como OT-06 y la web responsive sigue en F4.
+- **Cierre de integración:** PR #8 fusionada a `main` en `e6d32b9`. GitHub
+  Actions ejecutó `calidad` y `desplegar` con resultado **success**; el
+  endpoint público `https://brujula-teams.duckdns.org/health` respondió 200
+  con `entorno=production`. En un venv recreado desde cero se verificaron
+  `ruff check`, `ruff format --check`, `mypy` y **158 pruebas** en verde.
+  La primera ejecución del script limpio marcó tres falsos fallos causados
+  por un script temporal ajeno al commit y un cambio de rama concurrente;
+  se retiró el script y se repitieron las cuatro compuertas en ese mismo
+  venv limpio, todas verdes.
+- **Límite de la verificación:** el despliegue y `/health` no demuestran que
+  `chat`, imágenes, `olvidar`, las cuatro fuentes ni `recuérdame` funcionen
+  de punta a punta en Teams con permisos y datos reales. Hay que ejecutar
+  esa prueba con el usuario del tenant y registrar el resultado antes de
+  declarar OT-05 cerrada.
 
 **Regla general:** una rama antigua que añade capacidades también arrastra
 decisiones antiguas. Integrar es portar el comportamiento valioso sobre la
