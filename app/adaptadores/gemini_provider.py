@@ -24,10 +24,13 @@ Cambios respecto a su version, y por que:
 
 from __future__ import annotations
 
+import base64
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from app.config import Configuracion
+from app.dominio.adjunto import Adjunto
 from app.dominio.errores import LLMNoDisponibleError
 
 logger = logging.getLogger(__name__)
@@ -62,12 +65,32 @@ class GeminiProvider:
         return self._cliente
 
     async def generar(self, instruccion: str, contexto: str) -> str:
+        return await self._generar(instruccion, contexto)
+
+    async def generar_con_adjuntos(
+        self, instruccion: str, contexto: str, adjuntos: Sequence[Adjunto]
+    ) -> str:
+        """Envía imágenes a Gemini sin alterar el puerto de texto de la agenda."""
+        entrada = [
+            *(
+                {
+                    "type": "image",
+                    "data": base64.b64encode(adjunto.datos).decode("ascii"),
+                    "mime_type": adjunto.mime,
+                }
+                for adjunto in adjuntos
+            ),
+            {"type": "text", "text": contexto},
+        ]
+        return await self._generar(instruccion, entrada)
+
+    async def _generar(self, instruccion: str, entrada: Any) -> str:
         cliente = self._obtener_cliente()
         try:
             respuesta = await cliente.aio.interactions.create(
                 model=self.nombre_modelo,
                 system_instruction=instruccion,
-                input=contexto,
+                input=entrada,
                 timeout=TIMEOUT_SEGUNDOS,
             )
         except LLMNoDisponibleError:

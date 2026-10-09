@@ -65,7 +65,7 @@ motor interno — no hay una copia de la lógica por canal:
 app/
 ├── dominio/       # Qué es un "pendiente", con sus reglas propias.
 ├── servicios/     # El motor: reúne pendientes de todas las fuentes conectadas.
-├── adaptadores/   # Cómo se conecta cada fuente concreta (hoy: una fuente de ejemplo).
+├── adaptadores/   # Microsoft Graph, MongoDB y Gemini detrás de puertos.
 ├── api/           # Puerta 1 — REST: GET /api/agenda
 ├── bot/           # Puerta 2 — Teams: escribes "semana" y responde por ahí
 └── main.py        # Arma la aplicación completa y conecta las dos puertas al mismo motor
@@ -93,18 +93,21 @@ uvicorn app.main:app --reload       # en otra terminal
 
 ---
 
-## Qué viene después
+## Estado actual y comandos
 
-Brújula responde hoy con datos de ejemplo, para demostrar que las dos puertas de entrada (la web y
-Teams) funcionan de punta a punta. Lo siguiente que se suma:
+En Teams, `semana` reúne calendario, To Do, Planner y pendientes creados con
+`recuérdame <texto>`. Las preguntas libres sobre la agenda consultan esas
+fuentes y declaran cualquier fallo parcial. `conectar`, `desconectar`, `estado`
+y `ayuda` gestionan la sesión y explican el estado.
 
-- **Pendientes reales**, conectando Planner, To Do y el calendario del usuario en vez de datos de
-  ejemplo.
-- **Detección de compromisos en conversaciones**, para que un "para el viernes necesito X" escrito
-  en un chat también aparezca como pendiente, marcado como inferencia.
-- **Historial y memoria**, para que Brújula recuerde el contexto entre una pregunta y la siguiente.
-- **Guía de instalación para administradores de TI**, para que cualquier organización pueda
-  aprobar e instalar Brújula en su propio Teams.
+El aporte de Julián agrega `chat <pregunta>` para conversación general con
+memoria y lectura de imágenes pegadas en Teams. `olvidar` borra la memoria de
+quien lo escribe en esa conversación. Este flujo está separado de la agenda:
+una respuesta general de Gemini no se presenta como un pendiente confirmado.
+
+El endpoint HTTP `/api/agenda` todavía usa la fuente de ejemplo. La detección
+de compromisos en mensajes de Teams y la interfaz web responsive siguen
+pendientes; se documentan en la hoja de ruta, no se muestran como terminadas.
 
 ---
 

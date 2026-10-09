@@ -8,6 +8,7 @@ del servicio a tarjetas. NO decide nada del negocio.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from fastapi import FastAPI
@@ -15,17 +16,24 @@ from microsoft_teams.api import MessageActivity, MessageActivityInput, TypingAct
 from microsoft_teams.apps import ActivityContext, App
 from microsoft_teams.apps.http.fastapi_adapter import FastAPIAdapter
 
+from app.bot.descarga_adjuntos import descargar_imagenes, tiene_imagenes
 from app.bot.tarjeta_agenda import tarjeta_agenda
 from app.composicion import (
+    servicio_chat_general,
     servicio_conversacion,
     servicio_para_usuario,
     servicio_pendientes_propios_para_usuario,
 )
 from app.config import Configuracion
+from app.dominio.adjunto import Adjunto, AdjuntoNoSoportadoError
+from app.dominio.conversacion import MemoriaNoDisponibleError
 from app.servicios.servicio_agenda import ServicioAgenda
+from app.servicios.servicio_chat_general import ServicioChatGeneral
 from app.servicios.servicio_conversacion import ServicioConversacion
 
-PATRON_AGENDA = re.compile(r"\b(semana|pendientes|qu[eé]\s+tengo|agenda)\b", re.IGNORECASE)
+PATRON_AGENDA = re.compile(
+    r"^(?!\s*chat\b).*\b(semana|pendientes|qu[eé]\s+tengo|agenda)\b", re.IGNORECASE
+)
 PATRON_AYUDA = re.compile(r"^\s*(hola|ayuda|help|men[uú]|\?)\s*$", re.IGNORECASE)
 PATRON_CONECTAR = re.compile(
     r"^\s*(conectar|conectarme|iniciar\s+sesi[oó]n|login)\s*$", re.IGNORECASE
@@ -33,11 +41,15 @@ PATRON_CONECTAR = re.compile(
 PATRON_DESCONECTAR = re.compile(r"^\s*(desconectar|cerrar\s+sesi[oó]n|logout)\s*$", re.IGNORECASE)
 PATRON_ESTADO = re.compile(r"^\s*(estado|status)\s*$", re.IGNORECASE)
 PATRON_RECUERDAME = re.compile(r"^\s*rec[uú][eé]rdame\b", re.IGNORECASE)
+PATRON_CHAT = re.compile(r"^\s*chat\b\s*", re.IGNORECASE)
+PATRON_OLVIDAR = re.compile(r"^\s*olvidar\s*$", re.IGNORECASE)
 
 AYUDA = (
     "**Brújula** — te ubica entre tus pendientes.\n\n"
     "- **`semana`** — qué tienes en los próximos 7 días\n"
     "- **`recuérdame <texto> [el viernes]`** — anota un pendiente propio\n"
+    "- **`chat <pregunta>`** — conversación general con memoria; también puedes enviar imágenes\n"
+    "- **`olvidar`** — borra la memoria de tu conversación\n"
     "- **`conectar`** — autoriza a Brújula a leer tu calendario real\n"
     "- **`desconectar`** — revoca esa autorización\n"
     "- **`estado`** — si tus datos son reales o de ejemplo, ahora mismo\n"
@@ -85,6 +97,19 @@ async def construir_respuesta_libre(
     return respuesta.texto
 
 
+async def construir_respuesta_chat(
+    chat: ServicioChatGeneral,
+    usuario_id: str,
+    conversacion_id: str,
+    mensaje: str,
+    ahora: datetime,
+    adjuntos: Sequence[Adjunto] = (),
+) -> str:
+    """Prueba el chat general sin depender del SDK ni de Teams conectado."""
+    respuesta = await chat.responder(usuario_id, conversacion_id, mensaje, ahora, adjuntos)
+    return respuesta.texto
+
+
 def _usuario_id(ctx: ActivityContext) -> str:
     """AAD Object ID del usuario. Se prefiere sobre el ID de canal de Teams.
 
@@ -120,9 +145,34 @@ def crear_bot_teams(
     # El servicio de conversacion SI se puede construir una vez: no lleva
     # token de nadie. El de agenda NO, y por eso se crea por peticion.
     conversacion = servicio_conversacion(config)
+    chat_general = servicio_chat_general(config)
+
+    async def responder_chat(ctx: ActivityContext[MessageActivity]) -> None:
+        """Convierte adjuntos de Teams y delega el contenido al caso de uso."""
+        await ctx.reply(TypingActivityInput())
+        try:
+            imagenes = await descargar_imagenes(
+                getattr(ctx.activity, "attachments", None) or [], config
+            )
+            pregunta = PATRON_CHAT.sub("", ctx.activity.text or "", count=1)
+            texto = await construir_respuesta_chat(
+                chat_general,
+                _usuario_id(ctx),
+                ctx.activity.conversation.id,
+                pregunta,
+                datetime.now(UTC),
+                imagenes,
+            )
+        except (AdjuntoNoSoportadoError, ValueError) as error:
+            await ctx.send(str(error))
+            return
+        await ctx.send(texto)
 
     @bot.on_message_pattern(PATRON_AGENDA)
     async def responder_agenda(ctx: ActivityContext[MessageActivity]) -> None:
+        if tiene_imagenes(getattr(ctx.activity, "attachments", None) or []):
+            await responder_chat(ctx)
+            return
         await ctx.reply(TypingActivityInput())
 
         if not ctx.is_signed_in:
@@ -186,6 +236,15 @@ def crear_bot_teams(
         except ValueError as e:
             await ctx.send(f"No entendí el pendiente: {e}")
 
+    @bot.on_message_pattern(PATRON_OLVIDAR)
+    async def olvidar(ctx: ActivityContext[MessageActivity]) -> None:
+        try:
+            await chat_general.olvidar(_usuario_id(ctx), ctx.activity.conversation.id)
+        except (MemoriaNoDisponibleError, ValueError):
+            await ctx.send("No pude borrar la memoria en este momento. Inténtalo otra vez.")
+            return
+        await ctx.send("Listo, borré lo que recordaba de esta conversación.")
+
     @bot.on_message
     async def pregunta_libre(ctx: ActivityContext[MessageActivity]) -> None:
         """Pregunta en lenguaje natural SOBRE LOS PENDIENTES del usuario.
@@ -195,6 +254,12 @@ def crear_bot_teams(
         esta persona. Si la pregunta no va de pendientes, el servicio
         declina — y eso se puede testear sin Teams y sin gastar cuota.
         """
+        mensaje = ctx.activity.text or ""
+        attachments = getattr(ctx.activity, "attachments", None) or []
+        if PATRON_CHAT.match(mensaje) or tiene_imagenes(attachments):
+            await responder_chat(ctx)
+            return
+
         if not ctx.is_signed_in:
             # Sin sesion no hay agenda, y sin agenda no hay nada sobre lo
             # que responder. No se inventa ni se responde de cultura general.
