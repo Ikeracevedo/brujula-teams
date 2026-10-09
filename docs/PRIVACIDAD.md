@@ -1,6 +1,6 @@
 # Política de Privacidad — Brújula
 
-**Última actualización:** 13 de septiembre de 2026
+**Última actualización:** 9 de octubre de 2026
 
 Brújula es una aplicación desarrollada como proyecto académico (Proyecto en TIC 1, Universidad
 Pontificia Bolivariana) que se integra con Microsoft Teams para ayudar a estudiantes a consolidar,
@@ -58,31 +58,54 @@ revocado, porque hubo un error de conexión, o porque el servicio de Microsoft n
 **nunca lo interpreta como "no tienes pendientes"**. Te informa explícitamente cuál fuente falló,
 y te muestra igualmente los datos de las fuentes que sí respondieron.
 
-## 5. Qué no hace Brújula
+El chat general funciona por separado de la agenda. Si MongoDB no responde,
+el chat puede contestar, pero indica que no pudo guardar memoria de esa respuesta.
 
-- No vende, comparte ni transfiere tus datos a terceros.
-- No usa tus datos para entrenar modelos de lenguaje ni para ningún fin publicitario.
-- No mantiene un historial permanente de tus eventos o tareas: los consulta en el momento en que
-  se lo pides y no los conserva más allá de lo necesario para responderte.
+## 5. Datos guardados y uso de Gemini
+
+- Los pendientes creados con `recuérdame` se guardan en MongoDB Atlas con el
+  identificador de usuario de Microsoft, título, fecha opcional y estado. No
+  se copian allí las tareas ni los eventos consultados desde Microsoft Graph.
+- El modo `chat` guarda en MongoDB los últimos 40 turnos breves de cada usuario
+  y conversación. Los documentos caducan tras 30 días sin actividad. `olvidar`
+  borra el historial de quien lo escribe en esa conversación. Si MongoDB no
+  está configurado, la memoria queda solo en el proceso y desaparece al
+  reiniciarlo.
+- Las imágenes enviadas al chat se descargan temporalmente desde Teams y se
+  envían a Gemini para producir la respuesta. No se guardan los bytes de la
+  imagen en MongoDB; en la memoria solo queda su nombre.
+- Las preguntas sobre la agenda envían a Gemini el texto de los pendientes
+  consultados y la pregunta. El modo `chat` envía el mensaje, el historial
+  breve y las imágenes adjuntas a Gemini. Google procesa esos datos como
+  proveedor externo del modelo.
+- `desconectar` revoca la sesión de Microsoft, pero no elimina los pendientes
+  propios ni el historial de chat. Para pedir el borrado de pendientes propios,
+  contacta al desarrollador indicado al final de esta política.
+
+## 6. Qué no hace Brújula
+
+- No vende tus datos ni los usa con fines publicitarios.
+- No mantiene una copia permanente de tus eventos o tareas de Microsoft Graph.
 - No registra el contenido de tus eventos, tareas o chats en archivos de registro (*logs*). Los
   logs técnicos solo contienen información operativa (por ejemplo, que una consulta a Graph
   devolvió un error 403), nunca el contenido de tus datos ni tus credenciales.
 
-## 6. Tus derechos
+## 7. Tus derechos
 
 Como usuario, en cualquier momento puedes:
 
 - Revocar el acceso de Brújula a tu cuenta (comando `desconectar`, o desde tu cuenta de Microsoft).
 - Preguntar qué fuentes están conectadas realmente (comando `estado`).
 - Solicitar información sobre qué datos ha leído Brújula, escribiendo al contacto indicado abajo.
+- Borrar el historial del chat con `olvidar` y solicitar el borrado de pendientes propios al contacto.
 
-## 7. Naturaleza académica del proyecto
+## 8. Naturaleza académica del proyecto
 
 Brújula es un proyecto desarrollado en el marco de una asignatura universitaria (Proyecto en TIC 1,
 UPB). No es un producto comercial en operación permanente. Esta política se mantiene vigente
 mientras el proyecto esté activo y se actualizará si su alcance cambia.
 
-## 8. Contacto
+## 9. Contacto
 
 Para preguntas sobre esta política o sobre tus datos, contacta al desarrollador:
 

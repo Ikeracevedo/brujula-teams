@@ -8,12 +8,14 @@ manual, y esta en la OT.
 
 from __future__ import annotations
 
+import base64
 from typing import Any
 
 import pytest
 
 from app.adaptadores.gemini_provider import GeminiProvider
 from app.config import Configuracion
+from app.dominio.adjunto import Adjunto
 from app.dominio.errores import LLMNoDisponibleError
 
 
@@ -50,3 +52,30 @@ def test_el_modelo_sale_de_la_configuracion() -> None:
 
 def test_con_api_key_se_reporta_configurado() -> None:
     assert GeminiProvider(_config(gemini_api_key="clave-de-prueba")).esta_configurado is True
+
+
+async def test_envia_imagen_como_entrada_multimodal_sin_red() -> None:
+    class Interacciones:
+        def __init__(self) -> None:
+            self.entrada: Any = None
+
+        async def create(self, **kwargs: Any) -> Any:
+            self.entrada = kwargs["input"]
+            return type("Respuesta", (), {"output_text": "Veo una pizarra"})()
+
+    interacciones = Interacciones()
+    proveedor = GeminiProvider(_config(gemini_api_key="clave-de-prueba"))
+    proveedor._cliente = type(
+        "Cliente", (), {"aio": type("Aio", (), {"interactions": interacciones})()}
+    )()
+    imagen = Adjunto("pizarra.png", "image/png", b"imagen-de-prueba")
+
+    respuesta = await proveedor.generar_con_adjuntos("sistema", "¿Qué ves?", [imagen])
+
+    assert respuesta == "Veo una pizarra"
+    assert interacciones.entrada[0] == {
+        "type": "image",
+        "data": base64.b64encode(imagen.datos).decode("ascii"),
+        "mime_type": "image/png",
+    }
+    assert interacciones.entrada[1] == {"type": "text", "text": "¿Qué ves?"}

@@ -16,3 +16,6 @@ google-genai==2.23.0
 # motor llego a end-of-life el 14-may-2026; se usa AsyncMongoClient de pymongo,
 # que es GA desde 4.9 y sin conflicto con pydantic 2.12.5.
 pymongo==4.18.2
+
+# Descarga de imágenes entregadas por Teams (dependencia directa del canal).
+httpx==0.28.1

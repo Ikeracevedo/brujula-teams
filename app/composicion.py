@@ -24,11 +24,14 @@ from app.adaptadores.gemini_provider import GeminiProvider
 from app.adaptadores.graph_calendario import FuenteCalendarioGraph
 from app.adaptadores.graph_planner import FuentePlannerGraph
 from app.adaptadores.graph_todo import FuenteToDoGraph
+from app.adaptadores.memoria_en_proceso import MemoriaEnProceso
+from app.adaptadores.memoria_mongo import MemoriaMongo
 from app.adaptadores.mongo_pendientes import FuentePropiaMongo
 from app.config import Configuracion
 from app.puertos.llm_provider import LLMProvider
 from app.puertos.task_source import TaskSource
 from app.servicios.servicio_agenda import ServicioAgenda
+from app.servicios.servicio_chat_general import ServicioChatGeneral
 from app.servicios.servicio_conversacion import ServicioConversacion
 from app.servicios.servicio_pendientes_propios import ServicioPendientesPropios
 
@@ -86,3 +89,9 @@ def proveedor_llm(config: Configuracion) -> LLMProvider:
 def servicio_conversacion(config: Configuracion) -> ServicioConversacion:
     """El caso de uso de conversacion, con su proveedor ya inyectado."""
     return ServicioConversacion(proveedor_llm(config))
+
+
+def servicio_chat_general(config: Configuracion) -> ServicioChatGeneral:
+    """Chat de Julián con memoria; el modo local usa RAM si no hay Mongo."""
+    memoria = MemoriaMongo(config.mongodb_uri) if config.mongodb_uri else MemoriaEnProceso()
+    return ServicioChatGeneral(GeminiProvider(config), memoria)

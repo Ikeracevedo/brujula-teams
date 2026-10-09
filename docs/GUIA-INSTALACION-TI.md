@@ -144,21 +144,26 @@ usuarios inicien sesión?** → **No**.
 
 ## 6. Tratamiento de datos 🔴
 
-> 🔴 **Sección pendiente. No enviar esta guía a ningún cliente sin completarla** — es la primera
-> que lee un administrador con criterio, y dejarla en blanco es peor que no tener guía.
+> **Borrador para revisión del administrador.** Antes de una instalación de
+> cliente, confirmar la región de Atlas y las condiciones de tratamiento de
+> datos vigentes de Google. El despliegue académico registrado en la bitácora
+> usa una VM de Azure en México Central.
 
 | Pregunta | Respuesta |
 |---|---|
-| ¿Dónde se ejecuta Brújula? | «región / proveedor de hosting» |
-| ¿Qué se almacena? | «historial de conversación / caché de pendientes / nada» |
-| ¿Durante cuánto tiempo? | «política de retención» |
+| ¿Dónde se ejecuta Brújula? | Despliegue académico: Azure VM en México Central. Confirmar la región del despliegue de cada cliente. |
+| ¿Qué se almacena? | En MongoDB Atlas: pendientes creados con `recuérdame` y hasta 40 turnos breves por usuario y conversación del modo `chat`. No se guardan copias de los eventos y tareas de Graph ni bytes de imágenes. |
+| ¿Durante cuánto tiempo? | La memoria de chat caduca tras 30 días sin actividad y puede borrarse con `olvidar`. Los pendientes propios permanecen hasta que se solicite su eliminación. |
 | ¿Se almacenan credenciales? | **No.** Nunca se almacenan contraseñas de usuario |
-| ¿Cómo se guardan los tokens? | «tokens de corta vida; refresh tokens cifrados en reposo» |
-| ¿Se usan los datos para entrenar modelos? | «respuesta explícita» |
-| ¿Qué proveedor de IA procesa el texto? | «proveedor, región, política de retención de su parte» |
-| ¿Hay subencargados de tratamiento? | «lista» |
+| ¿Cómo se guardan los tokens? | Los tokens de usuario los custodia Microsoft Bot Framework Token Service; Brújula no conserva refresh tokens. |
+| ¿Se usan los datos para entrenar modelos? | La aplicación no entrena modelos. Las condiciones de uso de datos de Gemini deben revisarse con Google antes de aprobar un tenant cliente. |
+| ¿Qué proveedor de IA procesa el texto? | Google Gemini procesa preguntas sobre la agenda, chat general e imágenes. Confirmar región y retención contractual antes de instalar en un cliente. |
+| ¿Hay subencargados de tratamiento? | Microsoft, MongoDB Atlas y Google intervienen en los flujos descritos. Revisar los acuerdos de tratamiento aplicables. |
 
-*Depende de decisiones de OT-03B (proveedor de LLM) y OT-04 (persistencia). Se completa entonces.*
+`desconectar` revoca la sesión de Microsoft; no borra los pendientes propios ni
+el historial de chat. `olvidar` borra solo el historial del usuario en esa
+conversación. El contacto de la sección 9 tramita solicitudes sobre pendientes
+propios.
 
 ---
 

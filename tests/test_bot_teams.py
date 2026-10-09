@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from app.bot.bot_teams import (
     PATRON_AGENDA,
     PATRON_AYUDA,
+    PATRON_CHAT,
     PATRON_RECUERDAME,
     construir_respuesta_agenda,
 )
@@ -81,6 +82,12 @@ def test_reconoce_recuerdame() -> None:
         assert PATRON_RECUERDAME.match(frase), f"No reconocio: {frase!r}"
     for frase in ["semana", "ayuda", "estado"]:
         assert not PATRON_RECUERDAME.match(frase)
+
+
+def test_chat_no_se_confunde_con_pregunta_de_agenda() -> None:
+    frase = "chat ¿qué tengo pendiente sobre este tema?"
+    assert PATRON_CHAT.match(frase)
+    assert not PATRON_AGENDA.search(frase)
 
 
 def test_no_responde_fuera_de_alcance() -> None:

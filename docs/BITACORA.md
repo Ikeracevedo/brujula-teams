@@ -3,8 +3,8 @@
 > Registro vivo. Se actualiza al cerrar cada Orden de Trabajo.
 > Leer junto con `PLAN-MAESTRO.md` al inicio de cada chat.
 
-**Estado actual:** **F3 — Graph delegado** (30 sep–14 oct)
-**OT activa:** **OT-05** — Planner y To Do (Pendiente)
+**Estado actual:** **F3 — Graph delegado** (30 sep–14 oct); preparación de F4
+**OT activa:** **Integración del aporte de Julián con OT-05**
 **OT-04 y OT-04B:** ✅ CERRADAS (16-sep-2026). Datos reales y despliegue en Azure VM exitosos.
 **OT-03A:** ✅ CERRADA (13-sep-2026)
 **OT-02B:** ✅ CERRADA (8-sep-2026), auditada ejecutando la suite. PR #1 mergeada
@@ -14,7 +14,39 @@
 **Nombre del proyecto:** **Brújula**
 **⏰ ENTREGA FINAL: 28 DE OCTUBRE DE 2026.** Checkpoints: 16 sep · 30 sep · 14 oct · 28 oct
 **Documentos vivos:** `PLAN-COMPLETO.md` · `BITACORA.md` · `RUNBOOK-TENANT.md` · `GUIA-INSTALACION-TI.md` (borrador) · `GUIA-OPERACION.md`
-**Última actualización:** 16 de septiembre de 2026 (Cierre OT-04 y OT-04B, inicio de Planner y To Do).
+**Última actualización:** 9 de octubre de 2026 (auditoría de ramas e integración en preparación).
+
+---
+
+## Sesión del 9-oct-2026 — Sincronización e integración del equipo
+
+- `main` local se actualizó por avance rápido hasta `2ae57f0` (PR #7). La rama
+  `feat/gemini-integrado` ya aportó To Do, Planner, MongoDB para pendientes
+  propios y `recuérdame`; se comprobaron 143 pruebas, Ruff y mypy en verde
+  antes de integrar.
+- Julián trabajó en `feature/gemini` → `feature/memoria-conversacion` →
+  `feature/adjuntos`. Estas ramas parten de `42a70cd`; mezclarlas completas
+  con `main` borraría los adaptadores y pruebas añadidos después. Se tomó
+  `feature/adjuntos` como referencia para portar sus capacidades.
+- La integración se preparó en `feat/integracion-equipo`: `chat <pregunta>`
+  ofrece conversación general con memoria, las imágenes de Teams se envían
+  a Gemini y `olvidar` borra el historial del usuario en esa conversación.
+  `semana`, las preguntas sobre pendientes y `recuérdame` conservan su flujo.
+- La memoria se aisló por **usuario y conversación**, porque el ID de una
+  conversación de Teams puede ser compartido. En Mongo se guarda solo texto
+  breve (máximo 40 turnos) con caducidad tras 30 días; las imágenes no se
+  persisten. La descarga solo acepta HTTPS en hosts de Teams/Bot Framework
+  y rechaza redirecciones para evitar SSRF o fuga del token del bot.
+- Se corrigieron `PRIVACIDAD.md`, la guía de TI y el README para declarar
+  MongoDB, Gemini y el alcance real de cada modo. La verificación en Teams,
+  Azure, Atlas y el enlace de Planner/To Do sigue pendiente; los tests sin red
+  no sustituyen esa prueba. La detección de pendientes desde mensajes de
+  canal permanece como OT-06 y la web responsive sigue en F4.
+
+**Regla general:** una rama antigua que añade capacidades también arrastra
+decisiones antiguas. Integrar es portar el comportamiento valioso sobre la
+arquitectura vigente y verificar las fronteras de datos; no mezclar el árbol
+de archivos completo.
 
 ---
 
